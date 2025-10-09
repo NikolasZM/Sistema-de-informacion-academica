@@ -1,0 +1,51 @@
+PROYECTO: Sistema de Gestión Académica
+1. Datos Personales
+
+Registro de información del docente.
+
+Posibilidad de modificar su ficha personal.
+
+2. Gestión Académica
+2.1. Cursos y Unidades Didácticas
+
+Selección de cursos que el docente imparte.
+
+Visualización de las unidades didácticas correspondientes.
+
+2.2. Evaluaciones y Notas
+
+Cada curso tendrá 4 evaluaciones (Nota 1, Nota 2, Nota 3, Nota 4).
+
+Funcionalidades:
+
+Ingresar notas: seleccionar qué nota registrar.
+
+Consolidado de notas: similar al SGA, con impresión en PDF.
+
+Debe mostrar:
+
+Código del estudiante.
+
+Nombre y sección.
+
+Curso.
+
+Notas de cada evaluación.
+
+2.3. Asistencia de Estudiantes
+
+Registro de asistencia.
+
+Registro de justificaciones de faltas.
+
+2.4. Material Académico
+
+Subida de sílabos por curso en la sección de estudiantes.
+
+Opción de cerrar curso.
+
+Opción de reabrir acta.
+
+2.5. Horario de Clases
+
+Visualización del horario asignado.
