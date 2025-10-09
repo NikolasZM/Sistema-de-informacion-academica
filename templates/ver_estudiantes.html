@@ -1,0 +1,35 @@
+{% extends "base_docente.html" %}
+{% block title %}Lista de Estudiantes{% endblock %}
+{% block content %}
+<div style="max-width:900px; margin:0 auto;">
+  <h2 style="color:#fff; background:#1976d2; padding:18px 0; text-align:center; border-radius:8px 8px 0 0; margin-bottom:0;">
+    LISTA DE ESTUDIANTES
+  </h2>
+  <div style="background:#fff; border-radius:0 0 8px 8px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:24px;">
+    <div style="margin-bottom:18px;">
+      <span style="font-weight:bold;">Curso:</span> {{ curso_nombre }}
+      {% if nombre_curso %}<span style="margin-left:40px; font-weight:bold;">Unidad Didáctica:</span> {{ nombre_curso }}{% endif %}
+    </div>
+    {% if estudiantes %}
+    <table style="width:100%; border-collapse:collapse;">
+      <tr style="background:#e3eafc; color:#1976d2;">
+        <th style="padding:8px;">N°</th>
+        <th style="padding:8px;">Código</th>
+        <th style="padding:8px;">Nombre</th>
+        <th style="padding:8px;">Programa</th>
+      </tr>
+      {% for estudiante in estudiantes %}
+      <tr style="background:{{ '#f9fafb' if loop.index0 % 2 == 0 else '#fff' }};">
+        <td style="padding:8px;">{{ loop.index }}</td>
+        <td style="padding:8px;">{{ estudiante.codigo }}</td>
+        <td style="padding:8px;">{{ estudiante.nombre }}</td>
+        <td style="padding:8px;">{{ estudiante.programa }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p style="color:#888; margin-top:18px;">No hay estudiantes matriculados en este curso.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

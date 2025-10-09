@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Sistema de Gestión Académica</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: #fff;
+            padding: 40px 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+        }
+        .info {
+            margin-left: 30px;
+        }
+        .info h1 {
+            color: #2d3e50;
+            margin-bottom: 20px;
+        }
+        .info a {
+            display: inline-block;
+            margin: 10px 0;
+            padding: 10px 20px;
+            background: #1976d2;
+            color: #fff;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .info a:hover {
+            background: #1565c0;
+        }
+        .img-box img {
+            width: 180px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="img-box">
+            <img src="https://images.unsplash.com/photo-1503676382389-4809596d5290?auto=format&fit=crop&w=400&q=80" alt="Niño en colegio">
+        </div>
+        <div class="info">
+            <h1>Sistema de Gestión Académica</h1>
+            <a href="{{ url_for('routes.login') }}">Iniciar sesión</a>
+            <a href="{{ url_for('routes.login_google') }}">Iniciar sesión con Google</a>
+        </div>
+    </div>
+</body>
+</html>

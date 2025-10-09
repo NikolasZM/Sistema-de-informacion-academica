@@ -1,0 +1,46 @@
+{% extends "template_admin.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between mb-3">
+    <h3>Matricular alumnos — Módulo: {{ modulo_activo.modulo.nombre if modulo_activo.modulo else modulo_activo.modulo_id }}</h3>
+    <a href="{{ url_for('routes.gestion_programas') }}" class="btn btn-outline-secondary">Volver</a>
+  </div>
+
+  <div class="card p-3 mb-3">
+    <form method="get" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <input name="q" value="{{ query }}" class="form-control" placeholder="Buscar por DNI...">
+      </div>
+      <div class="col-auto">
+        <button class="btn btn-outline-primary">Buscar</button>
+      </div>
+      <div class="col-auto">
+        <a href="{{ url_for('routes.matricular_modulo', ma_id=modulo_activo.id) }}" class="btn btn-secondary">Limpiar</a>
+      </div>
+    </form>
+  </div>
+
+  <div class="card p-3">
+    {% if estudiantes %}
+      <div class="list-group">
+        {% for e in estudiantes %}
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ e.nombre_completo }}</strong><br>
+              <small class="text-muted">DNI: {{ e.dni }} · Tel: {{ e.info.celular if e.info else '' }}</small>
+            </div>
+            <div class="text-end">
+              <form method="post" style="display:inline;">
+                <input type="hidden" name="estudiante_id" value="{{ e.id }}">
+                <button class="btn btn-sm btn-primary">Matricular</button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p class="text-muted">No se encontraron estudiantes libres para matricular.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

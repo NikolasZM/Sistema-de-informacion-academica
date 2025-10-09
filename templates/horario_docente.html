@@ -1,0 +1,25 @@
+{% extends "base_docente.html" %}
+{% block title %}Horario de Clases{% endblock %}
+{% block content %}
+<h2>Horario de Clases</h2>
+<table border="1" cellpadding="6" style="background:#fff;">
+  <tr style="background:#1976d2; color:#fff;">
+    <th>Curso</th>
+    <th>Día</th>
+    <th>Hora Inicio</th>
+    <th>Hora Fin</th>
+    <th>Salón</th>
+    <th>Periodo</th>
+  </tr>
+  {% for clase in horario %}
+  <tr>
+    <td>{{ clase.curso }}</td>
+    <td>{{ clase.dia }}</td>
+    <td>{{ clase.hora_inicio }}</td>
+    <td>{{ clase.hora_fin }}</td>
+    <td>{{ clase.salon }}</td>
+    <td>{{ clase.periodo }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

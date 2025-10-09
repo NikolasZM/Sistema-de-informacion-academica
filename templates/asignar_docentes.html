@@ -1,0 +1,44 @@
+{% extends "template_admin.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between mb-3">
+    <h3>Asignar docentes — Módulo: {{ modulo_activo.modulo.nombre if modulo_activo.modulo else modulo_activo.modulo_id }}</h3>
+    <a href="{{ url_for('routes.gestion_programas') }}" class="btn btn-outline-secondary">Volver</a>
+  </div>
+
+  <form method="post">
+    <div class="card p-3">
+      <div class="mb-3 text-muted">Seleccione un docente para cada curso.</div>
+
+      {% if cursos %}
+        {% for c in cursos %}
+          <div class="row align-items-center mb-2">
+            <div class="col-md-6">
+              <strong>{{ c.curso.nombre if use_curso_activo and c.curso else c.nombre if not use_curso_activo else c.curso_id }}</strong>
+            </div>
+            <div class="col-md-6">
+              <select name="docente_for_{{ c.id if use_curso_activo else c.id }}" class="form-select">
+                <option value="">-- Sin asignar --</option>
+                {% for d in docentes %}
+                  {# intentar marcar seleccionado si ya existe relación docente en el objeto #}
+                  {% set selected = "" %}
+                  {% if use_curso_activo and c.docente %}
+                    {% if c.docente.id == d.id %}{% set selected = "selected" %}{% endif %}
+                  {% endif %}
+                  <option value="{{ d.id }}" {{ selected }}>{{ d.nombre_completo or d.usuario or d.email }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+        {% endfor %}
+        <div class="text-end mt-3">
+          <a href="{{ url_for('routes.gestion_programas') }}" class="btn btn-secondary me-2">Cancelar</a>
+          <button class="btn btn-primary">Guardar asignaciones</button>
+        </div>
+      {% else %}
+        <p class="text-muted">No se encontraron cursos en este módulo.</p>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% endblock %}

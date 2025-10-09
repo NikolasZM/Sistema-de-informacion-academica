@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>{% block title %}Panel Docente{% endblock %}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+        margin: 0;
+      }
+      .container {
+        display: flex;
+        min-height: 100vh;
+      }
+      .sidebar {
+        position: relative;
+        background: #1976d2;
+        color: #fff;
+        width: 260px;
+        min-width: 260px;
+        padding: 40px 20px;
+        box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
+        height: 100vh;
+      }
+      .sidebar h2 {
+        margin-top: 0;
+      }
+      .sidebar ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .sidebar li {
+        margin: 18px 0;
+      }
+      .sidebar a {
+        color: #fff;
+        text-decoration: none;
+        font-weight: bold;
+        transition: color 0.2s;
+        cursor: pointer;
+      }
+      .sidebar a:hover {
+        color: #bbdefb;
+      }
+      .submenu {
+        display: none;
+        margin-left: 18px;
+      }
+      .submenu.show {
+        display: block;
+      }
+      .main {
+        flex: 1;
+        padding: 60px 40px;
+        min-width: 0;
+      }
+    </style>
+    <script>
+      function toggleSubmenu() {
+        var submenu = document.getElementById("submenu-gestion");
+        submenu.classList.toggle("show");
+      }
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <div class="sidebar">
+        <h2>Menú Docente</h2>
+        <ul>
+          <li>
+            <a href="{{ url_for('routes.perfil_docente') }}">1. Datos Personales</a>
+          </li>
+          <li>
+            <a onclick="toggleSubmenu()">2. Gestión Académica &#9662;</a>
+            <ul id="submenu-gestion" class="submenu show">
+              <li>
+                <a href="{{ url_for('routes.cursos_docente') }}">2.1 Cursos y Unidades Didácticas</a>
+              </li>
+              <li>
+                <a href="{{ url_for('routes.evaluaciones_docente') }}">2.2 Evaluaciones y Notas</a>
+              </li>
+              <li>
+                <a href="{{ url_for('routes.asistencia_docente') }}">2.3 Asistencia de Estudiantes</a>
+              </li>
+              <li>
+                <a href="{{ url_for('routes.material_academico') }}">2.4 Material Académico</a>
+              </li>
+              <li>
+                <a href="{{ url_for('routes.horario_docente') }}">2.5 Horario de Clases</a>
+              </li>
+            </ul>
+          </li>
+        </ul>
+        <a
+          href="{{ url_for('routes.logout') }}"
+          style="
+            color: #ffeb3b;
+            font-weight: bold;
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+          "
+          >Cerrar sesión</a
+        >
+      </div>
+      <div class="main">{% block content %}{% endblock %}</div>
+    </div>
+  </body>
+</html>

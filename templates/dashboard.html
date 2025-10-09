@@ -1,0 +1,167 @@
+{% extends 'template_admin.html' %}
+
+{% block content %}
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="py-4">
+    <h2 class="text-primary">Dashboard Principal</h2>
+    <p class="text-muted">Resumen general del sistema académico</p>
+  </div>
+
+  <!-- Indicadores superiores -->
+  <div class="row g-3 mb-4">
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card shadow-sm h-100 rounded-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted">Estudiantes Matriculados</small>
+            <div class="h4 mb-0">40</div>
+          </div>
+          <div class="icon-box rounded-circle d-flex align-items-center justify-content-center">
+            <!-- icon (emoji simple) -->
+            <span style="font-size:24px;">👥</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card shadow-sm h-100 rounded-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted">Docentes Activos</small>
+            <div class="h4 mb-0">12</div>
+          </div>
+          <div class="icon-box rounded-circle d-flex align-items-center justify-content-center">
+            <span style="font-size:24px;">🧑‍🏫</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card shadow-sm h-100 rounded-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted">Cursos Activos</small>
+            <div class="h4 mb-0">2</div>
+          </div>
+          <div class="icon-box rounded-circle d-flex align-items-center justify-content-center">
+            <span style="font-size:24px;">📚</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-6 col-lg-3">
+      <div class="card shadow-sm h-100 rounded-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted">Horarios Programados</small>
+            <div class="h4 mb-0">5</div>
+          </div>
+          <div class="icon-box rounded-circle d-flex align-items-center justify-content-center">
+            <span style="font-size:24px;">📅</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Accesos rápidos -->
+  <div class="card rounded-3 shadow-sm mb-4">
+    <div class="card-body">
+      <h6 class="text-primary">Accesos Rápidos</h6>
+
+      <div class="row g-3 mt-3">
+        <!-- Item 1 -->
+        <div class="col-12 col-md-6">
+          <a href="/administrador/estudiantes"
+             class="quick-access d-block p-4 rounded-3 text-decoration-none bg-white shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-1 text-dark">Gestionar Estudiantes</h5>
+                <p class="mb-0 text-muted">Ver, agregar y editar estudiantes</p>
+              </div>
+              <div class="ms-3">
+                <span class="chev">➔</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Item 2 -->
+        <div class="col-12 col-md-6">
+          <a href="/administrador/matricula"
+             class="quick-access d-block p-4 rounded-3 text-decoration-none bg-white shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-1 text-dark">Matricular Alumnos</h5>
+                <p class="mb-0 text-muted">Registrar nuevas matrículas</p>
+              </div>
+              <div class="ms-3">
+                <span class="chev">➔</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Item 3 -->
+        <div class="col-12 col-md-6">
+          <a href="/administrador/horarios"
+             class="quick-access d-block p-4 rounded-3 text-decoration-none bg-white shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-1 text-dark">Programar Horarios</h5>
+                <p class="mb-0 text-muted">Asignar cursos y salones</p>
+              </div>
+              <div class="ms-3">
+                <span class="chev">➔</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+        <!-- Item 4 -->
+        <div class="col-12 col-md-6">
+          <a href="/administrador/reportes"
+             class="quick-access d-block p-4 rounded-3 text-decoration-none bg-white shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h5 class="mb-1 text-dark">Generar Reportes</h5>
+                <p class="mb-0 text-muted">Crear reportes académicos</p>
+              </div>
+              <div class="ms-3">
+                <span class="chev">➔</span>
+              </div>
+            </div>
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Small inline styles to approximate the look -->
+<style>
+.icon-box {
+  width:48px;
+  height:48px;
+  background: #f1f6ff;
+  font-size: 20px;
+}
+.quick-access:hover {
+  transform: translateX(4px);
+  transition: all .12s ease-in-out;
+  text-decoration: none;
+}
+.chev {
+  font-size: 20px;
+  color: #9aa3b2;
+}
+@media (prefers-color-scheme: dark) {
+  .quick-access { background: #1f2937; color: #e5e7eb; }
+}
+</style>
+{% endblock %}

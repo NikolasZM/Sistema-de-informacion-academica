@@ -1,0 +1,77 @@
+{% extends 'template_admin.html' %}
+
+{% block content %}
+<div class="container-fluid py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h3 class="text-primary">Crear Estudiante</h3>
+      <p class="text-muted mb-0">Rellena los datos del estudiante para agregarlo al sistema.</p>
+    </div>
+    <a href="{{ url_for('routes.estudiantes_admin') }}" class="btn btn-outline-secondary">← Volver a la lista</a>
+  </div>
+
+  <div class="card p-4 shadow-sm">
+    <form method="post" novalidate>
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Apellidos *</label>
+          <input name="apellidos" value="{{ form.get('apellidos','') }}" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Nombres *</label>
+          <input name="nombres" value="{{ form.get('nombres','') }}" class="form-control" required>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Programa *</label>
+          <input name="programa" value="{{ form.get('programa','') }}" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">DNI *</label>
+          <input name="dni" value="{{ form.get('dni','') }}" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Sexo</label>
+          <select name="sexo" class="form-select">
+            <option value="">--</option>
+            <option value="FEMENINO" {% if form.get('sexo') == 'FEMENINO' %}selected{% endif %}>Femenino</option>
+            <option value="MASCULINO" {% if form.get('sexo') == 'MASCULINO' %}selected{% endif %}>Masculino</option>
+            <option value="OTRO" {% if form.get('sexo') == 'OTRO' %}selected{% endif %}>Otro</option>
+          </select>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Fecha de nacimiento (DD/MM/AAAA)</label>
+          <input name="fecha_nacimiento" value="{{ form.get('fecha_nacimiento','') }}" class="form-control" placeholder="01/01/2000">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Celular</label>
+          <input name="celular" value="{{ form.get('celular','') }}" class="form-control">
+        </div>
+        <div class="col-12">
+          <label class="form-label">Dirección</label>
+          <input name="direccion" value="{{ form.get('direccion','') }}" class="form-control">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label">Departamento</label>
+          <input name="departamento" value="{{ form.get('departamento','') }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Provincia</label>
+          <input name="provincia" value="{{ form.get('provincia','') }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Distrito</label>
+          <input name="distrito" value="{{ form.get('distrito','') }}" class="form-control">
+        </div>
+
+        <div class="col-12 text-end">
+          <a href="{{ url_for('routes.estudiantes_admin') }}" class="btn btn-secondary me-2">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Crear Estudiante</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,41 @@
+{% extends "base_docente.html" %}
+{% block title %}Registrar Asistencia{% endblock %}
+{% block content %}
+<h2>Registrar Asistencia - {{ curso_nombre }}</h2>
+<form method="POST">
+  <div style="margin-bottom:18px;">
+    <label for="fecha" style="font-weight:bold;">Fecha de clase:</label>
+    <input type="date" id="fecha" name="fecha"
+           value="{{ fecha_actual or '' }}"
+           required
+           max="{{ hoy }}"
+           style="padding:6px 12px; border-radius:5px; border:1px solid #b0bec5;">
+  </div>
+  <table style="width:100%; background:#fff; border-radius:8px;">
+    <tr style="background:#1976d2; color:#fff;">
+      <th>Código</th>
+      <th>Nombre</th>
+      <th>Asistencia</th>
+    </tr>
+    {% for estudiante in estudiantes %}
+    <tr>
+      <td>{{ estudiante.codigo }}</td>
+      <td>{{ estudiante.nombre_completo }}</td>
+      <td>
+        <select name="asistencia_{{ estudiante.id }}">
+          <option value="asistio"
+            {% if asistencias_dict[estudiante.id] == 'asistio' or asistencias_dict[estudiante.id] is none %}selected{% endif %}>
+            Asistió
+          </option>
+          <option value="falta"
+            {% if asistencias_dict[estudiante.id] == 'falta' %}selected{% endif %}>
+            Faltó
+          </option>
+        </select>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <button type="submit" style="margin-top:18px; background:#1976d2; color:#fff; border:none; border-radius:5px; padding:10px 24px;">Guardar Asistencia</button>
+</form>
+{% endblock %}

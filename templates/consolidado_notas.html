@@ -1,0 +1,51 @@
+{% extends "base_docente.html" %}
+{% block title %}Consolidado de Notas{% endblock %}
+{% block content %}
+<div id="consolidado-notas">
+  <h2 style="color:#fff; background:#111; padding:18px 0; text-align:center; border-radius:8px 8px 0 0; margin-bottom:0;">
+    CONSOLIDADO DE NOTAS
+  </h2>
+  <div style="background:#111; color:#fff; border-radius:0 0 8px 8px; padding:18px;">
+    <div style="margin-bottom:16px;">
+      <span style="font-weight:bold;">Unidad Didáctica:</span> {{ unidad }}
+      <span style="margin-left:40px; font-weight:bold;">Docente:</span> {{ docente }}
+    </div>
+    <table style="width:100%; border-collapse:collapse; background:#111; color:#fff;">
+      <tr>
+        <th rowspan="2" style="border:1px solid #fff; padding:6px;">N° Orden</th>
+        <th rowspan="2" style="border:1px solid #fff; padding:6px;">APELLIDOS Y NOMBRES</th>
+        <th colspan="8" style="border:1px solid #fff; padding:6px;">INDICADORES DE LOGRO</th>
+        <th rowspan="2" style="border:1px solid #fff; padding:6px;">Promedio</th>
+        <th rowspan="2" style="border:1px solid #fff; padding:6px;">Evaluación de Recuperación</th>
+        <th rowspan="2" style="border:1px solid #fff; padding:6px;">Nota Final</th>
+      </tr>
+      <tr>
+        {% for i in range(1,9) %}
+        <th style="border:1px solid #fff; padding:6px;">{{ i }}</th>
+        {% endfor %}
+      </tr>
+      {% for est in estudiantes %}
+      <tr>
+        <td style="border:1px solid #fff; padding:6px;">{{ "%02d"|format(loop.index) }}</td>
+        <td style="border:1px solid #fff; padding:6px;">{{ est.nombre }}</td>
+        {% for nota in est.indicadores[:8] %}
+        <td style="border:1px solid #fff; padding:6px;">{{ nota }}</td>
+        {% endfor %}
+        <td style="border:1px solid #fff; padding:6px; color:#ff5252;">{{ est.promedio }}</td>
+        <td style="border:1px solid #fff; padding:6px;">{{ est.recuperacion }}</td>
+        <td style="border:1px solid #fff; padding:6px; color:#ff5252;">{{ est.nota_final }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  <button onclick="window.print()" style="margin:18px auto 0 auto; display:block; background:#43a047; color:#fff; border:none; border-radius:5px; padding:10px 24px;">Imprimir PDF</button>
+</div>
+<style>
+@media print {
+  body * { visibility: hidden !important; }
+  #consolidado-notas, #consolidado-notas * { visibility: visible !important; }
+  #consolidado-notas { position: absolute; left: 0; top: 0; width: 100vw; background: #111 !important; color: #fff !important; }
+  #consolidado-notas button { display: none !important; }
+}
+</style>
+{% endblock %}

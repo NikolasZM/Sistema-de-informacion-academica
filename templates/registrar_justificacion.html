@@ -1,0 +1,32 @@
+{% extends "base_docente.html" %}
+{% block title %}Justificar Inasistencia{% endblock %}
+{% block content %}
+<h2>Justificar Inasistencia - Curso {{ cursos_nombre }}</h2>
+<form method="POST" style="margin-bottom:24px;">
+  <label for="codigo_estudiante">Código del estudiante:</label>
+  <input type="text" name="codigo_estudiante" id="codigo_estudiante" required>
+  <label for="fecha">Fecha de la falta:</label>
+  <input type="date" name="fecha" id="fecha" required>
+  <label for="observacion">Motivo de la justificación:</label>
+  <input type="text" name="observacion" id="observacion" required>
+  <button type="submit">Justificar</button>
+</form>
+
+<h3>Faltas pendientes de justificación</h3>
+<table>
+  <tr>
+    <th>Código</th>
+    <th>Nombre</th>
+    <th>Fecha</th>
+    <th>Observación</th>
+  </tr>
+  {% for falta in faltas %}
+  <tr>
+    <td>{{ falta.codigo }}</td>
+    <td>{{ falta.nombre }}</td>
+    <td>{{ falta.fecha }}</td>
+    <td>{{ falta.observacion }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

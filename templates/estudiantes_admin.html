@@ -1,0 +1,134 @@
+{% extends 'template_admin.html' %}
+
+{% block content %}
+
+<div class="container-fluid">
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-start py-4">
+    <div>
+      <h2 class="text-primary">Gestión de Estudiantes</h2>
+      <p class="text-muted mb-0">Administra la información de los estudiantes matriculados</p>
+    </div>
+
+    <div class="d-flex align-items-center gap-3">
+      <!-- Search -->
+      <div class="input-group" style="min-width:300px;">
+        <span class="input-group-text bg-white border-0" id="search-addon">🔍</span>
+        <input id="searchInput" type="search" class="form-control border-0 shadow-sm"
+               placeholder="Buscar estudiantes..." aria-label="Buscar" aria-describedby="search-addon">
+      </div>
+
+      <!-- Add button -->
+      <a href="/administrador/crear_estudiante" class="btn btn-primary shadow-sm">
+        <span class="me-2">+</span> Agregar Estudiante
+      </a>
+    </div>
+  </div>
+
+  <!-- Card with table -->
+  <div class="card rounded-3 shadow-sm">
+    <div class="card-body">
+      <h6 class="text-primary mb-3">Lista de Estudiantes</h6>
+
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead class="text-muted small">
+            <tr>
+              <th>DNI</th>
+              <th>Nombre</th>
+              <th>Programa</th>
+              <th>Sexo</th>
+              <th>Edad</th>
+              <th>Teléfono</th>
+              <th>Trabaja</th>
+              <th>Módulo</th>
+              <th class="text-center">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTable">
+            {% for s in students %}
+            <tr>
+              <td class="fw-light">{{ s.dni }}</td>
+              <td>{{ s.nombre }}</td>
+              <td class="text-muted">{{ s.programa }}</td>
+              <td>{{ s.sexo }}</td>
+              <td>{{ s.edad }}</td>
+              <td>{{ s.telefono }}</td>
+              <td>
+                {% if s.trabaja %}
+                  <span class="badge rounded-pill text-success bg-success bg-opacity-10">Sí</span>
+                {% else %}
+                  <span class="badge rounded-pill text-muted bg-light">No</span>
+                {% endif %}
+              </td>
+              <td>
+                <span class="badge rounded-pill bg-primary bg-opacity-10 text-primary px-3 py-2">
+                  {{ s.modulo }}
+                </span>
+              </td>
+              <td class="text-center">
+                <a href="#" class="btn btn-sm btn-link" title="Ver">
+                  👁
+                </a>
+                <a href="#" class="btn btn-sm btn-link" title="Editar">
+                  ✏️
+                </a>
+                <a href="#" class="btn btn-sm btn-link text-danger" title="Eliminar"
+                   onclick="return confirm('¿Eliminar al estudiante {{ s.nombre }}?');">
+                  🗑
+                </a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="9" class="text-center text-muted">No hay estudiantes.</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Opcional: paginación simple -->
+      <div class="d-flex justify-content-between align-items-center mt-4">
+        <div class="text-muted small">Mostrando {{ students|length }} estudiantes</div>
+        <nav aria-label="paginación">
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item disabled"><a class="page-link">«</a></li>
+            <li class="page-item active"><a class="page-link">1</a></li>
+            <li class="page-item"><a class="page-link">2</a></li>
+            <li class="page-item"><a class="page-link">3</a></li>
+            <li class="page-item"><a class="page-link">»</a></li>
+          </ul>
+        </nav>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Small styles -->
+<style>
+.card .table thead th { border-bottom: none; }
+.card { border: none; }
+.table > tbody > tr > td { border-top: 1px solid rgba(0,0,0,0.04); }
+.input-group .form-control { background: #fff; }
+@media (prefers-color-scheme: dark) {
+  .card { background: #111827; }
+  .input-group .form-control { background: #0b1220; color: #e5e7eb; }
+}
+</style>
+
+<!-- Small client-side search (filtra filas por nombre / dni / programa) -->
+<script>
+document.getElementById('searchInput').addEventListener('input', function(e){
+  const q = e.target.value.trim().toLowerCase();
+  const rows = document.querySelectorAll('#studentsTable tr');
+  rows.forEach(row => {
+    // ignore empty-row message
+    if (!row.querySelector('td')) return;
+    const text = row.innerText.toLowerCase();
+    row.style.display = text.includes(q) ? '' : 'none';
+  });
+});
+</script>
+{% endblock %}

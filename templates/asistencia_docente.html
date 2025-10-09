@@ -1,0 +1,48 @@
+{% extends "base_docente.html" %}
+{% block title %}Asistencia de Estudiantes{% endblock %}
+{% block content %}
+<h2 style="color:#1976d2; margin-bottom:18px;">Carga Académica - Asistencia</h2>
+<div style="background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px;">
+  <table style="width:100%; border-collapse:collapse;">
+    <tr style="background:#e3eafc; color:#1976d2;">
+      <th style="padding:6px;">Código</th>
+      <th style="padding:6px;">Nombre</th>
+      <th style="padding:6px;">Periodo Académico</th>
+      <th style="padding:6px;">Sección</th>
+      <th style="padding:6px;">Asistencia</th>
+      <th style="padding:6px;">Justificación</th>
+      <th style="padding:6px;">Reporte</th>
+      <th style="padding:6px;">Plantilla</th>
+    </tr>
+    {% for carga in cargas %}
+    <tr style="background:{{ '#f9fafb' if loop.index0 % 2 == 0 else '#fff' }};">
+      <td style="padding:6px;">{{ carga.codigo }}</td>
+      <td style="padding:6px;">{{ carga.nombre }}</td>
+      <td style="padding:6px;">{{ carga.periodo }}</td>
+      <td style="padding:6px;">{{ carga.salon }}</td>
+      <td style="padding:6px;">
+        <a href="{{ url_for('routes.registrar_asistencia', codigo=carga.codigo) }}">
+          <button style="background:#29b6f6; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">Registrar Asistencia</button>
+        </a>
+      </td>
+      <td style="padding:6px;">
+        <a href="{{ url_for('routes.registrar_justificacion', codigo=carga.codigo) }}">
+          <button style="background:#ffd600; color:#333; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">Registrar Justificación</button>
+        </a>
+      </td>
+      <td style="padding:6px;">
+        <a href="{{ url_for('routes.reporte_asistencia', codigo=carga.codigo) }}">
+          <button style="background:#ef5350; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">Reporte Asistencia</button>
+        </a>
+      </td>
+      <td style="padding:6px;">
+        <button style="background:#66bb6a; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">Plantilla</button>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div style="margin-top:10px; color:#888; font-size:0.95em;">
+    Mostrando registros del 1 al {{ cargas|length }} de un total de {{ cargas|length }} registros
+  </div>
+</div>
+{% endblock %}

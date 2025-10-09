@@ -1,0 +1,64 @@
+{% extends "base_docente.html" %}
+{% block title %}Panel Docente - Sistema de Gestión Académica{% endblock %}
+{% block content %}
+    <h1>Bienvenido al Sistema de Gestión Académica</h1>
+    <p>Seleccione una opción del menú para comenzar.</p>
+{% endblock %}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel Docente - Sistema de Gestión Académica</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
+        .container { display: flex; height: 100vh; }
+        .sidebar {
+            background: #1976d2;
+            color: #fff;
+            width: 260px;
+            padding: 40px 20px;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.05);
+        }
+        .sidebar h2 { margin-top: 0; }
+        .sidebar ul { list-style: none; padding: 0; }
+        .sidebar li { margin: 18px 0; }
+        .sidebar a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            transition: color 0.2s;
+        }
+        .sidebar a:hover { color: #bbdefb; }
+        .main {
+            flex: 1;
+            padding: 60px 40px;
+        }
+        .main h1 { color: #1976d2; }
+        .main p { color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Menú Docente</h2>
+            <ul>
+                <li><a href="{{ url_for('routes.perfil_docente') }}">1. Datos Personales</a></li>
+                <li>2. Gestión Académica
+                    <ul>
+                        <li><a href="#">2.1 Cursos y Unidades Didácticas</a></li>
+                        <li><a href="#">2.2 Evaluaciones y Notas</a></li>
+                        <li><a href="#">2.3 Asistencia de Estudiantes</a></li>
+                        <li><a href="#">2.4 Material Académico</a></li>
+                        <li><a href="#">2.5 Horario de Clases</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+        <div class="main">
+            <h1>Bienvenido al Sistema de Gestión Académica</h1>
+            <p>Seleccione una opción del menú para comenzar.</p>
+        </div>
+    </div>
+</body>
+</html>

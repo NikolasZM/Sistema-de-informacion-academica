@@ -1,0 +1,36 @@
+{% extends "base_docente.html" %}
+{% block title %}Material Académico{% endblock %}
+{% block content %}
+<h2>Material Académico</h2>
+<form method="POST" enctype="multipart/form-data" style="margin-bottom:24px;">
+  <input type="file" name="archivo" required>
+  <button type="submit">Subir archivo</button>
+</form>
+<h3>Archivos subidos</h3>
+<ul style="list-style:none; padding:0;">
+  {% for archivo in archivos %}
+    <li style="margin-bottom:10px;">
+      {% set ext = archivo.split('.')[-1].lower() %}
+      <a href="{{ url_for('static', filename='uploads/material_academico/' ~ archivo) }}"
+         target="_blank"
+         style="font-weight:bold; color:#1976d2;">
+        {% if ext == 'pdf' %}
+          📄 {{ archivo }}
+        {% elif ext in ['xls', 'xlsx'] %}
+          📊 {{ archivo }}
+        {% elif ext in ['csv'] %}
+          🗒️ {{ archivo }}
+        {% elif ext in ['doc', 'docx'] %}
+          📝 {{ archivo }}
+        {% elif ext in ['ppt', 'pptx'] %}
+          📑 {{ archivo }}
+        {% else %}
+          📎 {{ archivo }}
+        {% endif %}
+      </a>
+    </li>
+  {% else %}
+    <li>No hay archivos subidos.</li>
+  {% endfor %}
+</ul>
+{% endblock %}

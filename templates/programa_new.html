@@ -1,0 +1,77 @@
+{% extends "template_admin.html" %}
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3>Abrir Nuevo Programa (Ofrecer Módulo)</h3>
+    <a href="{{ url_for('routes.gestion_programas') }}" class="btn btn-outline-secondary">Volver</a>
+  </div>
+
+  <div class="card p-4">
+    <form method="post">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label">Programa *</label>
+          <select id="programaSelect" name="programa_id" class="form-select" required>
+            <option value="">-- Elige un programa --</option>
+            {% for p in programas %}
+            <option value="{{ p.id }}" {% if form.get('programa_id') == p.id %}selected{% endif %}>{{ p.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Módulo *</label>
+          <select id="moduloSelect" name="modulo_id" class="form-select" required>
+            <option value="">Primero selecciona un programa</option>
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">Fecha inicio *</label>
+          <input type="date" name="fecha_inicio" value="{{ form.get('fecha_inicio','') }}" class="form-control" required>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Fecha fin *</label>
+          <input type="date" name="fecha_fin" value="{{ form.get('fecha_fin','') }}" class="form-control" required>
+        </div>
+
+        <div class="col-12 text-end">
+          <a href="{{ url_for('routes.gestion_programas') }}" class="btn btn-secondary me-2">Cancelar</a>
+          <button type="submit" class="btn btn-primary">Abrir módulo</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Carga módulos del servidor cuando cambia el programa.
+  // Para simplicidad hacemos una petición fetch a un endpoint que devuelve JSON con los módulos.
+  // Vamos a crear ese endpoint más abajo (ruta /_api/modulos/<programa_id>).
+
+  document.getElementById('programaSelect').addEventListener('change', async function(e) {
+    const pid = e.target.value;
+    const select = document.getElementById('moduloSelect');
+    select.innerHTML = '<option>Cargando...</option>';
+    if (!pid) {
+      select.innerHTML = '<option value="">Primero selecciona un programa</option>';
+      return;
+    }
+    try {
+      const res = await fetch(`/ _api/modulos/${pid}`.replace(' ', '')); // limpia posible espacio por plantillas
+      if (!res.ok) throw new Error('error');
+      const mods = await res.json();
+      let html = '<option value="">-- Elige un módulo --</option>';
+      mods.forEach(m => {
+        html += `<option value="${m.id}">${m.nombre} (Periodo: ${m.periodo_academico || ''})</option>`;
+      });
+      select.innerHTML = html;
+    } catch (err) {
+      select.innerHTML = '<option value="">Error cargando módulos</option>';
+    }
+  });
+
+  // Si el usuario viene con programa ya elegido (p.e. por error de validación),
+  // se puede disparar el cambio para rellenar módulos (si quieres lo activamos).
+</script>
+{% endblock %}

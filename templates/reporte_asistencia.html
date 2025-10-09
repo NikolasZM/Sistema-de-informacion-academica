@@ -1,0 +1,40 @@
+{% extends "base_docente.html" %}
+{% block title %}Reporte de Asistencia{% endblock %}
+{% block content %}
+<h2>Reporte de Asistencia - {{ curso_nombre }}</h2>
+
+<form method="get" style="margin-bottom:18px;">
+  <label for="fecha_inicio">Desde:</label>
+  <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}">
+  <label for="fecha_fin">Hasta:</label>
+  <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}">
+  <button type="submit">Filtrar</button>
+</form>
+
+<table border="1" cellpadding="6" style="background:#fff;">
+  <tr style="background:#1976d2; color:#fff;">
+    <th>Código</th>
+    <th>Nombre</th>
+    {% for fecha in fechas %}
+      <th>{{ fecha }}</th>
+    {% endfor %}
+  </tr>
+  {% for estudiante in estudiantes %}
+  <tr>
+    <td>{{ estudiante.codigo }}</td>
+    <td>{{ estudiante.nombre_completo }}</td>
+    {% for fecha in fechas %}
+      <td>
+        {% if asistencia_dict[estudiante.id][fecha] == 'asistio' %}
+          ✔️
+        {% elif asistencia_dict[estudiante.id][fecha] == 'falta' %}
+          ❌
+        {% else %}
+          -
+        {% endif %}
+      </td>
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}
