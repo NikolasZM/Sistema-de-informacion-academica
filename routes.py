@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify
 from flask_dance.contrib.google import make_google_blueprint, google
 from werkzeug.security import generate_password_hash, check_password_hash
-from models import *
+from .models import *
 from datetime import datetime, date
 from sqlalchemy.exc import IntegrityError
 
@@ -589,7 +589,7 @@ def horario_docente():
 
 @routes.route('/_api/modulos/<programa_id>')
 def api_modulos(programa_id):
-    from .models import Modulo
+
     mods = Modulo.query.filter_by(programa_id=programa_id).all()
     out = [{"id": m.id, "nombre": m.nombre, "periodo_academico": m.periodo_academico} for m in mods]
     return jsonify(out)
@@ -656,6 +656,7 @@ def estudiantes_admin():
 @routes.route('/administrador/programas')
 def gestion_programas():
 
+
     # traer todas las ofertas (modulos activos) — puedes filtrar por estado si quieres
     modulos_activos = ModuloActivo.query.all()
 
@@ -718,8 +719,6 @@ def gestion_programas():
 @routes.route('/administrador/crear_estudiante', methods=['GET', 'POST'])
 def crear_estudiante():
     
-    # Import dinámico/relativo para evitar problemas de paquete
-    from .models import Usuario, Estudiante, EstudianteInfo
 
     if request.method == 'POST':
         # Obtener campos del formulario
@@ -821,9 +820,6 @@ def crear_estudiante():
 @routes.route('/administrador/programas/new', methods=['GET', 'POST'])
 def abrir_programa():
     # Protección básica
-    # importamos aquí para evitar import circular
-    from .models import Programa, Modulo, ModuloActivo, db
-
     # Para GET -> cargar programas y módulos
     programas = Programa.query.all()
 
@@ -882,9 +878,6 @@ def abrir_programa():
 @routes.route('/administrador/usuarios')
 def gestion_usuarios():
 
-    # import relativo para evitar ciclos
-    from .models import Administrador, Docente, Usuario
-
     admins = Administrador.query.all()
     docentes = Docente.query.all()
 
@@ -914,8 +907,6 @@ def gestion_usuarios():
 # CREAR DOCENTE
 @routes.route('/administrador/usuarios/crear_docente', methods=['GET', 'POST'])
 def crear_docente():
-
-    from .models import Usuario, Docente, db
 
     if request.method == 'POST':
         usuario_nombre = request.form.get('usuario', '').strip()
@@ -981,8 +972,6 @@ def crear_docente():
 @routes.route('/administrador/usuarios/crear_admin', methods=['GET', 'POST'])
 def crear_admin():
 
-    from .models import Usuario, Administrador, db
-
     if request.method == 'POST':
         usuario_nombre = request.form.get('usuario', '').strip()
         password = request.form.get('password', '').strip()
@@ -1028,9 +1017,6 @@ def crear_admin():
 @routes.route('/administrador/modulo_activo/<int:ma_id>/asignar_docentes', methods=['GET', 'POST'])
 def asignar_docentes_modulo(ma_id):
 
-    # import local para evitar ciclos
-    from .models import ModuloActivo, CursoActivo, Curso, Docente, db, Modulo
-
     ma = ModuloActivo.query.get_or_404(ma_id)
 
     # Preferimos usar CursoActivo si existe (ofertas creadas al abrir módulo)
@@ -1070,8 +1056,7 @@ def asignar_docentes_modulo(ma_id):
                             if hasattr(ca, 'docente'):
                                 # cargar docente y asociar vía atributo si existe
                                 if docente_id:
-                                    from .models import Docente as DocModel
-                                    docobj = DocModel.query.get(int(docente_id))
+                                    docobj = Docente.query.get(int(docente_id))
                                     if docobj:
                                         setattr(ca, 'docente', docobj)
                             else:
@@ -1121,8 +1106,6 @@ def asignar_docentes_modulo(ma_id):
 # ====== Matricular alumnos en el ModuloActivo ======
 @routes.route('/administrador/modulo_activo/<int:ma_id>/matricular', methods=['GET', 'POST'])
 def matricular_modulo(ma_id):
-
-    from .models import ModuloActivo, Estudiante, Matricula, db
 
     ma = ModuloActivo.query.get_or_404(ma_id)
 
