@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify
 from flask_dance.contrib.google import make_google_blueprint, google
 from werkzeug.security import generate_password_hash, check_password_hash
-from .models import *
+from models import *
 from datetime import datetime, date
 from sqlalchemy.exc import IntegrityError
 
