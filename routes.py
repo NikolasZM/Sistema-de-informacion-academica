@@ -656,9 +656,6 @@ def estudiantes_admin():
 @routes.route('/administrador/programas')
 def gestion_programas():
 
-    # import dinámico relativo
-    from .models import ModuloActivo, Matricula
-
     # traer todas las ofertas (modulos activos) — puedes filtrar por estado si quieres
     modulos_activos = ModuloActivo.query.all()
 
