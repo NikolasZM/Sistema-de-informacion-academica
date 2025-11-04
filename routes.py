@@ -1,10 +1,14 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, current_app, send_from_directory, make_response, jsonify
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, current_app, send_from_directory, make_response, jsonify, send_file
 from flask_dance.contrib.google import make_google_blueprint, google
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import *
 from datetime import datetime, date
 import os
 from werkzeug.utils import secure_filename
+from sqlalchemy.exc import IntegrityError
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
+from io import BytesIO
 
 try:
     from weasyprint import HTML
@@ -12,6 +16,12 @@ except Exception:
     HTML = None
 
 routes = Blueprint('routes', __name__)
+
+def calcular_edad(fecha_nac):
+    if not fecha_nac:
+        return None
+    today = date.today()
+    return today.year - fecha_nac.year - ((today.month, today.day) < (fecha_nac.month, fecha_nac.day))
 
 
 @routes.route('/login', methods=['GET', 'POST'])
@@ -1370,17 +1380,43 @@ def abrir_programa():
                 estado="activo"
             )
             db.session.add(nuevo)
+            db.session.flush()  # <- IMPORTANTE: asegura que nuevo.id esté disponible
+
+            cursos_modulo = Curso.query.filter_by(modulo_id=modulo_id).all()
+            for curso in cursos_modulo:
+                ca = CursoActivo(
+                    curso_id=curso.id,
+                    modulo_activo_id=nuevo.id
+                )
+                db.session.add(ca)
+                
             db.session.commit()
             flash("Módulo abierto correctamente.", "success")
             return redirect(url_for('routes.gestion_programas'))
         except Exception as e:
             db.session.rollback()
-            routes.logger.exception("Error creando ModuloActivo:")
+            current_app.logger.exception("Error creando ModuloActivo:")
             flash("Ocurrió un error al crear la oferta del módulo.", "error")
             return render_template('programa_new.html', programas=programas, form=request.form)
 
     # GET
     return render_template('programa_new.html', programas=programas, form={})
+
+@routes.route('/_api/modulos/<programa_id>')
+def api_modulos(programa_id):
+    try:
+        mods = Modulo.query.filter_by(programa_id=programa_id).all()
+        return jsonify([
+            {
+                "id": m.id,
+                "nombre": m.nombre,
+                "periodo_academico": m.periodo_academico
+            } for m in mods
+        ])
+    except Exception as e:
+        routes.logger.exception("Error en /_api/modulos")
+        return jsonify({"error": str(e)}), 500
+
 
 @routes.route('/administrador/usuarios')
 def gestion_usuarios():
@@ -1610,69 +1646,70 @@ def asignar_docentes_modulo(ma_id):
                            use_curso_activo=use_curso_activo)
 
 
-# ====== Matricular alumnos en el ModuloActivo ======
 @routes.route('/administrador/modulo_activo/<int:ma_id>/matricular', methods=['GET', 'POST'])
 def matricular_modulo(ma_id):
-
     ma = ModuloActivo.query.get_or_404(ma_id)
-
-    # Construir query para alumnos NO matriculados en *ningún* modulo
-    # Intentamos usar Matricula.modulo_activo_id si existe; si no, buscar por cualquier Matricula existente
-    try:
-        # ver si Matricula tiene columna modulo_activo_id
-        has_mod_act = hasattr(Matricula, 'modulo_activo_id')
-    except Exception:
-        has_mod_act = False
 
     if request.method == 'POST':
         estudiante_id = request.form.get('estudiante_id')
+        curso_activo_id = request.form.get('curso_activo_id')  # Nuevo campo del formulario
+
         if not estudiante_id:
             flash("Selecciona un estudiante.", "error")
             return redirect(url_for('routes.matricular_modulo', ma_id=ma_id))
 
         try:
             nueva = Matricula(
-                fecha_matricula = date.today(),
-                estado = "activa",
-                estudiante_id = int(estudiante_id),
-                modulo_id = ma.modulo_id
+                fecha_matricula=date.today(),
+                estado="activa",
+                estudiante_id=int(estudiante_id),
+                modulo_id=ma.modulo_id,
+                modulo_activo_id=ma.id
             )
-            # si la tabla tiene modulo_activo_id, guárdala también
-            if has_mod_act:
-                nueva.modulo_activo_id = ma.id
+
+            # Si seleccionó un curso específico (no vacío)
+            if curso_activo_id and curso_activo_id != "modulo":
+                nueva.curso_activo_id = int(curso_activo_id)
+
             db.session.add(nueva)
             db.session.commit()
-            flash("Estudiante matriculado correctamente.", "success")
-        except Exception:
+
+            if nueva.curso_activo_id:
+                flash("Estudiante matriculado en el curso correctamente.", "success")
+            else:
+                flash("Estudiante matriculado en todo el módulo correctamente.", "success")
+
+        except Exception as e:
             db.session.rollback()
             routes.logger.exception("Error al matricular:")
             flash("Error al matricular al estudiante.", "error")
-        return redirect(url_for('routes.gestion_programas'))
 
-    # GET -> listar estudiantes NO matriculados
-    # Si la Matricula tiene modulo_activo_id, consideramos alumnos matriculados si existen matriculas con cualquier modulo_activo_id
-    # Fallback: si Matricula existe en cualquier forma, lo consideramos matriculado
-    subq = None
-    try:
-        # usar subquery de Matricula para excluir estudiantes que ya tengan ANY matricula
-        from sqlalchemy import exists
-        estudiantes_no = (Estudiante.query
-                          .filter(~exists().where(Matricula.estudiante_id == Estudiante.id))
-                          .all())
-    except Exception:
-        # fallback simple: tomar todos (si algo falla)
-        estudiantes_no = Estudiante.query.all()
+        return redirect(url_for('routes.matricular_modulo', ma_id=ma_id))
 
-    # soportar búsqueda por dni (query param 'q' o formulario)
+    # ==== GET ====
+    from sqlalchemy import exists
+
+    estudiantes_no = (Estudiante.query
+                      .filter(~exists().where(Matricula.estudiante_id == Estudiante.id))
+                      .all())
+
+    # Soporte para búsqueda por DNI
     q = request.args.get('q') or request.form.get('q') if request.method == 'POST' else request.args.get('q')
     if q:
         q = q.strip()
-        estudiantes_no = [e for e in estudiantes_no if q in (getattr(e,'dni','') or '')]
+        estudiantes_no = [e for e in estudiantes_no if q in (getattr(e, 'dni', '') or '')]
 
-    return render_template('matricular_alumnos.html',
-                           modulo_activo=ma,
-                           estudiantes=estudiantes_no,
-                           query=q or "")
+    # Pasamos también la lista de cursos activos del módulo para el <select>
+    cursos_activos = ma.cursos_activos  # relación definida en ModuloActivo
+
+    return render_template(
+        'matricular_alumnos.html',
+        modulo_activo=ma,
+        estudiantes=estudiantes_no,
+        cursos_activos=cursos_activos,
+        query=q or ""
+    )
+
 
 @routes.route('/administrador/reportes')
 def reportes_admin():

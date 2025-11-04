@@ -131,7 +131,6 @@ class Programa(db.Model):
     # Relación: Programa -> Módulos (1 a N)
     modulos = db.relationship(
         "Modulo",
-        back_populates="programa",
         cascade="all, delete-orphan",
         lazy=True
     )
@@ -253,6 +252,7 @@ class ProgramacionClase(db.Model):
 
 class Matricula(db.Model):
     __tablename__ = "matriculas"
+
     id = db.Column(db.Integer, primary_key=True)
     fecha_matricula = db.Column(db.Date, nullable=False)
     estado = db.Column(db.String(30), nullable=False, default="activa")  # activa | anulada | suspendida
@@ -260,19 +260,24 @@ class Matricula(db.Model):
     # FKs
     estudiante_id = db.Column(db.Integer, db.ForeignKey("estudiantes.id", ondelete="CASCADE"), nullable=False)
     modulo_id = db.Column(db.Integer, db.ForeignKey("modulos.id", ondelete="RESTRICT"), nullable=False)
-
     modulo_activo_id = db.Column(db.Integer, db.ForeignKey("modulos_activos.id", ondelete="SET NULL"), nullable=True)
 
+    # 🔹 NUEVO: Permite matrícula específica a un curso dentro del módulo activo (opcional)
+    curso_activo_id = db.Column(db.Integer, db.ForeignKey("cursos_activos.id", ondelete="SET NULL"), nullable=True)
 
     # Relaciones (usar back_populates para coincidir con Estudiante.matriculas)
     estudiante = db.relationship("Estudiante", back_populates="matriculas", lazy=True)
     modulo = db.relationship("Modulo", back_populates="matriculas")
     modulo_activo = db.relationship("ModuloActivo", backref=db.backref("matriculas", lazy=True))
-
+    curso_activo = db.relationship("CursoActivo", backref=db.backref("matriculas", lazy=True))
 
     __table_args__ = (
-        UniqueConstraint('estudiante_id', 'modulo_id', 'fecha_matricula', name='uq_matricula_est_mod_fecha'),
+        db.UniqueConstraint('estudiante_id', 'modulo_id', 'fecha_matricula', name='uq_matricula_est_mod_fecha'),
     )
+
+    def __repr__(self):
+        tipo = "curso" if self.curso_activo_id else "módulo"
+        return f"<Matricula id={self.id} est={self.estudiante_id} {tipo}={self.curso_activo_id or self.modulo_id} estado={self.estado}>"
 
 
 class Calificacion(db.Model):
@@ -318,12 +323,14 @@ class ModuloActivo(db.Model):
     # Relaciones
     programa = db.relationship("Programa", backref=db.backref("modulos_activos", lazy=True))
     modulo = db.relationship("Modulo", backref=db.backref("ofertas", lazy=True))
+    cursos_activos = db.relationship("CursoActivo", back_populates="modulo_activo", lazy=True)
+
 
     def __repr__(self):
         return f"<ModuloActivo id={self.id} modulo={self.modulo_id} prog={self.programa_id} {self.estado}>"
 
 class CursoActivo(db.Model):
-    __tablename__ = 'cursos_activos'                # nombre de tabla consistente (plural)
+    __tablename__ = 'cursos_activos'               
     id = db.Column(db.Integer, primary_key=True)
 
     # FK al ModuloActivo (tabla definida como "modulos_activos")
@@ -335,9 +342,10 @@ class CursoActivo(db.Model):
     # Relación al docente (tu tabla de usuarios/docentes)
     # Tu tabla Usuario no tiene __tablename__ explícito, su tabla es "usuario" (lowercase class name)
     docente_id = db.Column(db.Integer, db.ForeignKey('usuario.id'), nullable=True)
+    
 
     # Relaciones ORM
-    modulo_activo = db.relationship('ModuloActivo', backref=db.backref('cursos_activos', lazy=True))
+    modulo_activo = db.relationship("ModuloActivo", back_populates="cursos_activos")
     curso = db.relationship('Curso', backref=db.backref('cursos_activos', lazy=True))
     docente = db.relationship('Usuario', backref=db.backref('cursos_asignados', lazy=True))
 
