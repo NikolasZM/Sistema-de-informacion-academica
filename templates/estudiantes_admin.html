@@ -67,9 +67,18 @@
                 </span>
               </td>
               <td class="text-center">
-                <a href="#" class="btn btn-sm btn-link" title="Ver">
-                  👁
+                <a href="#" class="btn btn-sm btn-link ver-estudiante"
+                   data-dni="{{ s.dni }}"
+                   data-nombre="{{ s.nombre }}"
+                   data-programa="{{ s.programa }}"
+                   data-sexo="{{ s.sexo }}"
+                   data-edad="{{ s.edad }}"
+                   data-telefono="{{ s.telefono }}"
+                   data-trabaja="{{ 'Sí' if s.trabaja else 'No' }}"
+                   data-modulo="{{ s.modulo }}">
+                   👁
                 </a>
+
                 <a href="#" class="btn btn-sm btn-link" title="Editar">
                   ✏️
                 </a>
@@ -131,4 +140,56 @@ document.getElementById('searchInput').addEventListener('input', function(e){
   });
 });
 </script>
+
+<!-- Modal Detalle Estudiante -->
+<div class="modal fade" id="modalEstudiante" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-3 border-0 shadow">
+      <div class="modal-header bg-primary bg-opacity-10">
+        <h5 class="modal-title text-primary">Detalles del Estudiante</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <strong>DNI:</strong> <span id="infoDni"></span><br>
+            <strong>Nombre:</strong> <span id="infoNombre"></span><br>
+            <strong>Programa:</strong> <span id="infoPrograma"></span><br>
+            <strong>Sexo:</strong> <span id="infoSexo"></span>
+          </div>
+          <div class="col-md-6">
+            <strong>Edad:</strong> <span id="infoEdad"></span><br>
+            <strong>Teléfono:</strong> <span id="infoTelefono"></span><br>
+            <strong>Trabaja:</strong> <span id="infoTrabaja"></span><br>
+            <strong>Módulo:</strong> <span id="infoModulo"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+document.querySelectorAll('.ver-estudiante').forEach(btn => {
+  btn.addEventListener('click', e => {
+    e.preventDefault();
+    const d = btn.dataset;
+    document.getElementById('infoDni').textContent = d.dni;
+    document.getElementById('infoNombre').textContent = d.nombre;
+    document.getElementById('infoPrograma').textContent = d.programa;
+    document.getElementById('infoSexo').textContent = d.sexo;
+    document.getElementById('infoEdad').textContent = d.edad;
+    document.getElementById('infoTelefono').textContent = d.telefono;
+    document.getElementById('infoTrabaja').textContent = d.trabaja;
+    document.getElementById('infoModulo').textContent = d.modulo;
+
+    // Mostrar modal (Bootstrap 5)
+    const modal = new bootstrap.Modal(document.getElementById('modalEstudiante'));
+    modal.show();
+  });
+});
+</script>
+
 {% endblock %}

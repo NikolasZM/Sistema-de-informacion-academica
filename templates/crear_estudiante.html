@@ -5,68 +5,119 @@
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
       <h3 class="text-primary">Crear Estudiante</h3>
-      <p class="text-muted mb-0">Rellena los datos del estudiante para agregarlo al sistema.</p>
+      <p class="text-muted mb-0">Completa los datos del nuevo estudiante.</p>
     </div>
-    <a href="{{ url_for('routes.estudiantes_admin') }}" class="btn btn-outline-secondary">← Volver a la lista</a>
+    <a href="{{ url_for('routes.estudiantes_admin') }}" class="btn btn-outline-secondary">← Volver</a>
   </div>
 
   <div class="card p-4 shadow-sm">
     <form method="post" novalidate>
       <div class="row g-3">
-        <div class="col-md-6">
-          <label class="form-label">Apellidos *</label>
-          <input name="apellidos" value="{{ form.get('apellidos','') }}" class="form-control" required>
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Nombres *</label>
-          <input name="nombres" value="{{ form.get('nombres','') }}" class="form-control" required>
-        </div>
-
-        <div class="col-md-4">
-          <label class="form-label">Programa *</label>
-          <input name="programa" value="{{ form.get('programa','') }}" class="form-control" required>
-        </div>
-        <div class="col-md-4">
+        <!-- Datos personales -->
+        <h5 class="text-primary mt-3">Datos personales</h5>
+        <div class="col-md-3">
           <label class="form-label">DNI *</label>
           <input name="dni" value="{{ form.get('dni','') }}" class="form-control" required>
         </div>
         <div class="col-md-4">
-          <label class="form-label">Sexo</label>
-          <select name="sexo" class="form-select">
+          <label class="form-label">Apellidos *</label>
+          <input name="apellidos" value="{{ form.get('apellidos','') }}" class="form-control" required>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Nombres *</label>
+          <input name="nombres" value="{{ form.get('nombres','') }}" class="form-control" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Sexo *</label>
+          <select name="sexo" class="form-select" required>
             <option value="">--</option>
-            <option value="FEMENINO" {% if form.get('sexo') == 'FEMENINO' %}selected{% endif %}>Femenino</option>
-            <option value="MASCULINO" {% if form.get('sexo') == 'MASCULINO' %}selected{% endif %}>Masculino</option>
-            <option value="OTRO" {% if form.get('sexo') == 'OTRO' %}selected{% endif %}>Otro</option>
+            <option value="MASCULINO" {% if form.get('sexo')=='MASCULINO' %}selected{% endif %}>Masculino</option>
+            <option value="FEMENINO" {% if form.get('sexo')=='FEMENINO' %}selected{% endif %}>Femenino</option>
+            <option value="OTRO" {% if form.get('sexo')=='OTRO' %}selected{% endif %}>Otro</option>
           </select>
         </div>
-
-        <div class="col-md-4">
-          <label class="form-label">Fecha de nacimiento (DD/MM/AAAA)</label>
-          <input name="fecha_nacimiento" value="{{ form.get('fecha_nacimiento','') }}" class="form-control" placeholder="01/01/2000">
-        </div>
-        <div class="col-md-4">
-          <label class="form-label">Celular</label>
-          <input name="celular" value="{{ form.get('celular','') }}" class="form-control">
-        </div>
-        <div class="col-12">
-          <label class="form-label">Dirección</label>
-          <input name="direccion" value="{{ form.get('direccion','') }}" class="form-control">
+        <div class="col-md-3">
+          <label class="form-label">Fecha de nacimiento</label>
+          <input name="fecha_nacimiento" value="{{ form.get('fecha_nacimiento','') }}" class="form-control" placeholder="DD/MM/AAAA">
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
+          <label class="form-label">País de nacimiento</label>
+          <input name="pais" value="{{ form.get('pais','') }}" class="form-control">
+        </div>
+        <div class="col-md-3">
           <label class="form-label">Departamento</label>
           <input name="departamento" value="{{ form.get('departamento','') }}" class="form-control">
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label">Provincia</label>
           <input name="provincia" value="{{ form.get('provincia','') }}" class="form-control">
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
           <label class="form-label">Distrito</label>
           <input name="distrito" value="{{ form.get('distrito','') }}" class="form-control">
         </div>
 
-        <div class="col-12 text-end">
+        <!-- Datos académicos y laborales -->
+        <h5 class="text-primary mt-4">Formación y trabajo</h5>
+        <div class="col-md-4">
+          <label class="form-label">Programa de estudio</label>
+          <input name="programa" value="{{ form.get('programa','') }}" class="form-control">
+        </div>
+        <div class="col-md-2 form-check mt-4 ms-3">
+          <input type="checkbox" name="esta_trabajando" class="form-check-input" {% if form.get('esta_trabajando') %}checked{% endif %}>
+          <label class="form-check-label">Está trabajando</label>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Centro de trabajo</label>
+          <input name="centro_trabajo" value="{{ form.get('centro_trabajo','') }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Puesto de trabajo</label>
+          <input name="puesto_trabajo" value="{{ form.get('puesto_trabajo','') }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Nivel de educación</label>
+          <input name="nivel_educacion" value="{{ form.get('nivel_educacion','') }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Nombre del colegio</label>
+          <input name="nombre_colegio" value="{{ form.get('nombre_colegio','') }}" class="form-control">
+        </div>
+
+        <!-- Datos de contacto -->
+        <h5 class="text-primary mt-4">Contacto y otros</h5>
+        <div class="col-md-3">
+          <label class="form-label">Estado civil</label>
+          <input name="estado_civil" value="{{ form.get('estado_civil','') }}" class="form-control">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">N° de hijos</label>
+          <input name="numero_hijos" type="number" min="0" value="{{ form.get('numero_hijos','') }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Celular</label>
+          <input name="celular" value="{{ form.get('celular','') }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Domicilio</label>
+          <input name="domicilio" value="{{ form.get('domicilio','') }}" class="form-control">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Celular familiar contacto</label>
+          <input name="celular_familiar_contacto" value="{{ form.get('celular_familiar_contacto','') }}" class="form-control">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Link de foto del DNI</label>
+          <input name="link_foto_dni" value="{{ form.get('link_foto_dni','') }}" class="form-control">
+        </div>
+        <div class="col-md-5">
+          <label class="form-label">Medio por el cual conoció el programa</label>
+          <input name="medio_conocimiento" value="{{ form.get('medio_conocimiento','') }}" class="form-control">
+        </div>
+
+        <!-- Botones -->
+        <div class="col-12 text-end mt-4">
           <a href="{{ url_for('routes.estudiantes_admin') }}" class="btn btn-secondary me-2">Cancelar</a>
           <button type="submit" class="btn btn-primary">Crear Estudiante</button>
         </div>

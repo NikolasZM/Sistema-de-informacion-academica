@@ -1,0 +1,274 @@
+{% extends "template_admin.html" %}
+{% block content %}
+<style>
+.reportes-container {
+  font-family: "Inter", sans-serif;
+  color: #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 30px;
+}
+
+.reportes-container h2 {
+  color: #1d4ed8;
+  font-weight: 700;
+  font-size: 24px;
+}
+
+.reportes-container p {
+  color: #475569;
+  font-size: 15px;
+}
+
+.config-card {
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 25px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.config-card label {
+  font-weight: 600;
+  color: #334155;
+  margin-top: 10px;
+}
+
+.config-card select {
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+}
+
+.config-card button {
+  margin-top: 10px;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+#vista-btn {
+  background: #2563eb;
+  color: #fff;
+}
+
+#vista-btn:hover {
+  background: #1e40af;
+}
+
+#pdf-btn {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+#pdf-btn:hover {
+  background: #cbd5e1;
+}
+
+#tabla-reporte {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+#tabla-reporte thead {
+  background: #f1f5f9;
+  text-align: left;
+}
+
+#tabla-reporte th, #tabla-reporte td {
+  padding: 12px 16px;
+  font-size: 14px;
+}
+
+#tabla-reporte tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.estado {
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.estado.aprobado {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.estado.desaprobado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.asistencia {
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 13px;
+}
+
+.asistencia.alta {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.asistencia.media {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.asistencia.baja {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.reportes-main {
+  display: flex;
+  gap: 40px;
+  align-items: flex-start;
+}
+
+.vista-previa {
+  flex: 1;
+  background: #fff;
+  border-radius: 16px;
+  padding: 25px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.vista-previa h3 {
+  margin-bottom: 15px;
+  color: #1e293b;
+  font-size: 18px;
+}
+</style>
+
+<div class="reportes-container">
+  <h2>Gestión de Reportes</h2>
+  <p>Genera reportes académicos detallados y estadísticos</p>
+
+  <div class="reportes-main">
+    <!-- Panel izquierdo -->
+    <div class="config-card">
+      <h3>📄 Configurar Reporte</h3>
+
+      <label>Programa:</label>
+      <select id="programa">
+        {% for p in programas %}
+          <option value="{{ p.id }}">{{ p.nombre }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Módulo:</label>
+      <select id="modulo">
+        {% for m in modulos %}
+          <option value="{{ m }}">{{ m }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Periodo:</label>
+      <select id="periodo">
+        {% for per in periodos %}
+          <option value="{{ per }}">{{ per }}</option>
+        {% endfor %}
+      </select>
+
+      <button id="vista-btn">👁️ Vista Previa</button>
+      <button id="pdf-btn">📄 Generar PDF</button>
+    </div>
+
+    <!-- Vista previa -->
+    <div class="vista-previa">
+      <h3>Vista Previa</h3>
+      <table id="tabla-reporte">
+        <thead>
+          <tr>
+            <th>DNI</th>
+            <th>Nombre</th>
+            <th>Asistencia</th>
+            <th>Nota</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+let datosActuales = [];
+
+document.getElementById("vista-btn").addEventListener("click", async () => {
+  const payload = {
+    programa_id: document.getElementById("programa").value,
+    modulo: document.getElementById("modulo").value,
+    periodo: document.getElementById("periodo").value
+  };
+
+  const res = await fetch("/administrador/reportes/vista_previa", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const data = await res.json();
+  datosActuales = data.reporte;
+
+  const tbody = document.querySelector("#tabla-reporte tbody");
+  tbody.innerHTML = "";
+  data.reporte.forEach(r => {
+    let asistenciaClass = "alta";
+    if (r.asistencia < 80) asistenciaClass = "baja";
+    else if (r.asistencia < 90) asistenciaClass = "media";
+
+    const fila = `
+      <tr>
+        <td>${r.dni}</td>
+        <td>${r.nombre}</td>
+        <td><span class="asistencia ${asistenciaClass}">${r.asistencia}%</span></td>
+        <td>${r.nota}</td>
+        <td><span class="estado ${r.estado === "Aprobado" ? "aprobado" : "desaprobado"}">${r.estado}</span></td>
+      </tr>`;
+    tbody.innerHTML += fila;
+  });
+});
+
+document.getElementById("pdf-btn").addEventListener("click", async () => {
+  const payload = {
+    reporte: datosActuales,
+    programa: document.getElementById("programa").selectedOptions[0].text,
+    modulo: document.getElementById("modulo").selectedOptions[0].text,
+    periodo: document.getElementById("periodo").value
+  };
+
+  const res = await fetch("/administrador/reportes/pdf", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "reporte.pdf";
+  a.click();
+  window.URL.revokeObjectURL(url);
+});
+</script>
+{% endblock %}
