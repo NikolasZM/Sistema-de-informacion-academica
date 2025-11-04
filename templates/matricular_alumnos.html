@@ -24,14 +24,23 @@
     {% if estudiantes %}
       <div class="list-group">
         {% for e in estudiantes %}
-          <div class="list-group-item d-flex justify-content-between align-items-center">
+          <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
             <div>
               <strong>{{ e.nombre_completo }}</strong><br>
               <small class="text-muted">DNI: {{ e.dni }} · Tel: {{ e.info.celular if e.info else '' }}</small>
             </div>
             <div class="text-end">
-              <form method="post" style="display:inline;">
+              <form method="post" class="d-flex align-items-center gap-2" style="display:inline-flex;">
                 <input type="hidden" name="estudiante_id" value="{{ e.id }}">
+
+                <!-- 🔹 Selector de curso o todo el módulo -->
+                <select name="curso_activo_id" class="form-select form-select-sm" required>
+                  <option value="modulo">Todo el módulo</option>
+                  {% for c in cursos_activos %}
+                    <option value="{{ c.id }}">{{ c.curso.nombre }}</option>
+                  {% endfor %}
+                </select>
+
                 <button class="btn btn-sm btn-primary">Matricular</button>
               </form>
             </div>

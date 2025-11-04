@@ -58,7 +58,8 @@
       return;
     }
     try {
-      const res = await fetch(`/ _api/modulos/${pid}`.replace(' ', '')); // limpia posible espacio por plantillas
+      const res = await fetch(`/_api/modulos/${pid}`);
+
       if (!res.ok) throw new Error('error');
       const mods = await res.json();
       let html = '<option value="">-- Elige un módulo --</option>';
