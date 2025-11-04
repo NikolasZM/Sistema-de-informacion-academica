@@ -1,10 +1,10 @@
 # app.py
 from flask import Flask, redirect, url_for, request, render_template, session, flash
-from .models import db, Usuario
+from models import db, Usuario
 from flask_dance.contrib.google import make_google_blueprint, google
-from .routes import routes
+from routes import routes
 from flask_cors import CORS
-from .api_estudiantes import api_estudiantes
+from api_estudiantes import api_estudiantes
 
 import os
 
