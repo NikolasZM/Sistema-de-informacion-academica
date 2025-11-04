@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, session
-from models import *
+from .models import *
 from flask_sqlalchemy import SQLAlchemy
 db = SQLAlchemy()
 

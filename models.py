@@ -33,28 +33,51 @@ class Docente(db.Model):
     usuario = db.relationship('Usuario', back_populates='docente', uselist=False)
 
 
-# Tabla principal con campos obligatorios
 class Estudiante(db.Model):
     __tablename__ = "estudiantes"
 
+    # Identificador (mismo que usuario)
     id = db.Column(db.Integer, db.ForeignKey("usuario.id"), primary_key=True)
-    nombre_completo = db.Column(db.String(120), nullable=False)
-    programa_estudio = db.Column(db.String(100), nullable=False)
-    codigo = db.Column(db.String(20), unique=True, nullable=False)
+
+    # Datos personales básicos
     dni = db.Column(db.String(15), unique=True, nullable=False)
+    apellidos = db.Column(db.String(100), nullable=False)
+    nombre_completo = db.Column(db.String(100), nullable=False)
     sexo = db.Column(db.String(10), nullable=False)
     fecha_nacimiento = db.Column(db.Date, nullable=True)
-    
-    # Relación con Usuario y EstudianteInfo
-    usuario = db.relationship("Usuario", back_populates="estudiante",  uselist=False)
-    info = db.relationship("EstudianteInfo", back_populates="estudiante", uselist=False)
+    correo = db.Column(db.String(120), unique=True, nullable=True)
 
-    # NUEVO 
+    # Lugar de nacimiento
+    pais_nacimiento = db.Column(db.String(60), nullable=True)
+    departamento_nacimiento = db.Column(db.String(60), nullable=True)
+    provincia_nacimiento = db.Column(db.String(60), nullable=True)
+    distrito_nacimiento = db.Column(db.String(60), nullable=True)
+
+    # Información académica y laboral
+    programa_estudio = db.Column(db.String(100), nullable=True)
+    esta_trabajando = db.Column(db.Boolean, nullable=False, default=False)
+    centro_trabajo = db.Column(db.String(120), nullable=True)
+    puesto_trabajo = db.Column(db.String(120), nullable=True)
+    nivel_educacion = db.Column(db.String(100), nullable=True)
+    nombre_colegio = db.Column(db.String(120), nullable=True)
+
+    # Información adicional
+    estado_civil = db.Column(db.String(30), nullable=True)
+    numero_hijos = db.Column(db.Integer, nullable=True)
+    celular = db.Column(db.String(20), nullable=True)
+    domicilio = db.Column(db.String(200), nullable=True)
+    celular_familiar_contacto = db.Column(db.String(20), nullable=True)
+    link_foto_dni = db.Column(db.String(255), nullable=True)
+    medio_conocimiento = db.Column(db.String(150), nullable=True)
+
+    # Relaciones
+    usuario = db.relationship("Usuario", back_populates="estudiante", uselist=False)
+    info = db.relationship("EstudianteInfo", back_populates="estudiante", uselist=False)
     matriculas = db.relationship("Matricula", back_populates="estudiante")
     calificaciones = db.relationship("Calificacion", back_populates="estudiante")
 
     def __repr__(self):
-        return f"<Estudiante {self.nombre_completo}>"
+        return f"<Estudiante {self.apellidos}, {self.nombres}>"
 
 # Tabla secundaria con campos opcionales/editables
 class EstudianteInfo(db.Model):

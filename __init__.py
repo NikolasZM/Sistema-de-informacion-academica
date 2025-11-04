@@ -1,2 +1,2 @@
-from models import *
-from routes import routes
+from .models import *
+from .routes import routes

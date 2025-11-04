@@ -1,26 +1,18 @@
-from flask import Blueprint, render_template, request, session, redirect, url_for, flash, jsonify
+from flask import Blueprint, render_template, request, session, redirect, url_for, flash, current_app, send_from_directory, make_response, jsonify
 from flask_dance.contrib.google import make_google_blueprint, google
 from werkzeug.security import generate_password_hash, check_password_hash
 from models import *
 from datetime import datetime, date
-from sqlalchemy.exc import IntegrityError
+import os
+from werkzeug.utils import secure_filename
+
+try:
+    from weasyprint import HTML
+except Exception:
+    HTML = None
 
 routes = Blueprint('routes', __name__)
 
-def calcular_edad(fecha_nac):
-    if not fecha_nac:
-        return None
-    today = date.today()
-    return today.year - fecha_nac.year - ((today.month, today.day) < (fecha_nac.month, fecha_nac.day))
-
-
-
-def obtener_cursos_docente():
-    docente_id = session.get('user_id')
-    print("Docente ID:", docente_id)
-    cursos = Curso.query.filter_by(docente_id=docente_id).all()
-    print("Cursos encontrados:", cursos)
-    return cursos
 
 @routes.route('/login', methods=['GET', 'POST'])
 def login():
@@ -44,14 +36,48 @@ def login():
                 print("Sesión iniciada para estudiante:", usuario)
                 print("user_id en sesión:", session.get('user_id'))
                 print(f"Usuario estudiante en sesión: {usuario}")
-                print("Redirigiendo a React...")
-                #  redirige al frontend React (en desarrollo)
-                return redirect("http://localhost:5173/")
+                print("Redirigiendo a la app de React en producción...")
+                return redirect(url_for('routes.serve_react_app'))
+                #  redirige al frontend React (en desarrollo) CAMBIO AQUI
+                #return redirect("http://localhost:5173/")
             else:
                 return redirect(url_for('routes.inicio_admin'))
         else:
             flash('Usuario o contraseña incorrectos', 'error')
     return render_template('login.html')
+
+
+# Esta es la ruta "catch-all". Maneja:
+# 1. La entrada principal ('/app_estudiante')
+# 2. Las rutas de React Router ('/app_estudiante/cursos', '/app_estudiante/perfil')
+# 3. Los archivos estáticos que React solicita ('/app_estudiante/assets/index.js')
+# ...existing code...
+@routes.route('/app_estudiante')
+@routes.route('/app_estudiante/<path:path>')
+def serve_react_app(path=None):
+    import os
+    # ruta esperada al build de React
+    dist_dir = os.path.join(current_app.root_path, 'react-client', 'dist')
+    dist_dir_abs = os.path.abspath(dist_dir)
+    print("Buscando en dist_dir:", dist_dir_abs, " requested path:", path)
+
+    if path:
+        candidate = os.path.abspath(os.path.join(dist_dir_abs, path))
+        # asegurar que está dentro de dist y que es un archivo regular
+        if os.path.commonpath([dist_dir_abs, candidate]) == dist_dir_abs and os.path.isfile(candidate):
+            return send_from_directory(dist_dir, path)
+        else:
+            print("Archivo no encontrado o fuera de dist:", candidate)
+
+    # fallback: servir index si existe, sino devolver 404 para detectar problema
+    index_file = os.path.join(dist_dir_abs, 'index.html')
+    if os.path.isfile(index_file):
+        return send_from_directory(dist_dir, 'index.html')
+    else:
+        print("index.html no encontrado en:", index_file)
+        return ("Frontend build no encontrado. Ejecuta 'npm run build' y coloca el resultado en react-client/dist", 404)
+# ...existing code...
+# ---------------------------------------------
 
 @routes.route('/pagina_principal')
 def pagina_principal():
@@ -67,49 +93,143 @@ def login_google():
 
 @routes.route('/google_login/callback')
 def google_login_callback():
-    #if 'usuario' in session:
-    #    return redirect(url_for('routes.pagina_principal'))
-    
-    if not google.authorized:
-        return redirect(url_for('google.login'))
+    from flask import flash, redirect, session, current_app
+    from flask_dance.contrib.google import google
+    from models import Usuario, Docente, Estudiante
+    try:
+        from models import db
+    except Exception:
+        try:
+            from app import db
+        except Exception:
+            db = None
 
-    resp = google.get("https://www.googleapis.com/oauth2/v3/userinfo")
+    current_app.logger.info("google_login_callback inicio")
+    resp = google.get("/oauth2/v3/userinfo")
+    if not resp or not resp.ok:
+        flash("Error obteniendo información de Google.", "danger")
+        return redirect('/login')
 
-    if not resp.ok:
-        flash("Error al obtener la información del usuario de Google.", "error")
-        return redirect(url_for('routes.login'))
+    info = resp.json()
+    email = (info.get('email') or '').lower()
+    hd = (info.get('hd') or '').lower()
+    allowed = 'cedhinuevaarequipa.edu.pe'
+    if not email or not (hd == allowed or email.endswith(f"@{allowed}")):
+        flash("Acceso restringido al dominio cedhinuevaarequipa.edu.pe", "warning")
+        return redirect('/login')
 
-    user_info = resp.json()
-    print("Response google: ", user_info)
+    # buscar o crear Usuario
+    usuario = Usuario.query.filter_by(email=email).first()
+    if not usuario:
+        if db is None:
+            flash("Error interno.", "danger")
+            return redirect('/login')
+        import secrets
+        from werkzeug.security import generate_password_hash
+        nuevo = Usuario()
+        base = email.split('@')[0]
+        candidate = base
+        i = 1
+        while Usuario.query.filter_by(usuario=candidate).first():
+            candidate = f"{base}{i}"; i += 1
+        nuevo.usuario = candidate
+        nuevo.password = generate_password_hash(secrets.token_urlsafe(16))
+        if hasattr(nuevo, 'email'): nuevo.email = email
+        if hasattr(nuevo, 'rol'): nuevo.rol = 'estudiante'
+        if hasattr(nuevo, 'nombre'): nuevo.nombre = info.get('name') or candidate
+        db.session.add(nuevo); db.session.commit()
+        usuario = nuevo
+        current_app.logger.info("Usuario creado id=%s", usuario.id)
 
-    # Verificar que Google haya enviado un email
-    if 'email' not in user_info:
-        flash("Google no proporcionó una dirección de correo electrónico.", "error")
-        return redirect(url_for('routes.login'))
+    # asegurar/crear registro en Estudiante y usar su id si /app_estudiante lo requiere
+    estudiante = None
+    try:
+        from sqlalchemy import inspect
+        mapper = inspect(Estudiante)
+        cols = list(mapper.columns)
 
-    # Solo permitir correos institucionales
-    if not user_info['email'].endswith('@ucsp.edu.pe'):
-        flash("Solo se permite correos institucionales","error")
-        return redirect(url_for('routes.login'))
+        # detectar columna que vincula (usuario_id o id) y columnas obligatorias sin default
+        link_col = None
+        for c in cols:
+            if c.name == 'usuario_id':
+                link_col = 'usuario_id'
+                break
+        if not link_col:
+            # fallback: asumir id compartido
+            link_col = 'id'
 
-    # Obtener ID Unico de google
-    google_id = user_info.get("sub")
+        # buscar existente
+        if link_col == 'usuario_id':
+            estudiante = Estudiante.query.filter_by(usuario_id=usuario.id).first()
+        else:
+            estudiante = Estudiante.query.filter_by(id=usuario.id).first()
 
-    # Verificar si el usuario ya esta registrado
-    user = Usuario.query.filter_by(email=user_info['email']).first()
-    if not user:
-        user = Usuario(
-            usuario=user_info.get("name", "Usuario sin nombre"),
-            email=user_info['email'],
-            password=None,
-            rol='estudiante'
-        )
-        db.session.add(user)
-        db.session.commit()
+        # si no existe, construir kwargs validos y crear
+        if not estudiante and db is not None:
+            create_kwargs = {}
+            # siempre asignar el link (usuario_id o id)
+            create_kwargs[link_col] = usuario.id
 
-    session['usuario'] = user.usuario
-    session['rol'] = user.rol
-    return redirect(url_for('routes.pagina_principal'))
+            # nombre/display si hay campo apropiado
+            display_name = getattr(usuario, 'nombre', None) or usuario.email.split('@')[0]
+            # rellenar otros campos obligatorios (NOT NULL) con defaults por tipo
+            for c in cols:
+                if c.name == link_col or c.primary_key:
+                    continue
+                # saltar si tiene default o es nullable
+                if c.nullable:
+                    continue
+                if c.default is not None:
+                    continue
+                # si ya asignamos algo para este campo, skip
+                if c.name in create_kwargs:
+                    continue
+                # inferir tipo y asignar valor por defecto
+                default_value = None
+                try:
+                    pytype = c.type.python_type
+                    if pytype is str:
+                        # para campos texto obligatorios usar nombre o cadena vacía
+                        if c.name.lower() in ('nombre','nombre_completo','nombres'):
+                            default_value = display_name
+                        elif 'programa' in c.name.lower():
+                            default_value = 'Sin programa'
+                        else:
+                            default_value = ''
+                    elif pytype is int:
+                        default_value = 0
+                    elif pytype is float:
+                        default_value = 0.0
+                    elif pytype is bool:
+                        default_value = False
+                    else:
+                        default_value = None
+                except Exception:
+                    # fallback a cadena vacía para evitar NOT NULL
+                    default_value = ''
+                create_kwargs[c.name] = default_value
+
+            current_app.logger.info("Creando Estudiante con campos: %s", create_kwargs)
+            estudiante = Estudiante(**create_kwargs)
+            db.session.add(estudiante)
+            db.session.commit()
+    except Exception as e:
+        if db:
+            db.session.rollback()
+        current_app.logger.exception("Error con tabla Estudiante: %s", e)
+        estudiante = None
+
+    # fijar session usando el id que /app_estudiante espera
+    if estudiante:
+        session['user_id'] = estudiante.id
+    else:
+        session['user_id'] = usuario.id
+    session['rol'] = 'estudiante'
+    session['usuario'] = email
+    current_app.logger.info("Sesion seteada user_id=%s rol=estudiante", session['user_id'])
+
+    # redirigir al panel de estudiante
+    return redirect('/app_estudiante')
 
 @routes.route('/docente/perfil', methods=['GET','POST'])
 def perfil_docente():
@@ -137,32 +257,71 @@ def inicio_docente():
 
 @routes.route('/docente/cursos')
 def cursos_docente():
-    if 'usuario' not in session or session.get('rol') != 'docente':
+    from models import Docente, ProgramacionClase, Curso, Modulo, Programa, Salon, Periodo
+
+    docente_id = session.get('user_id')
+    if not docente_id:
         return redirect(url_for('routes.login'))
-    
-    docente = Docente.query.filter_by(id=session['user_id']).first()
-    cursos = []
-    if docente:
-        from models import ProgramacionClase, Curso, Modulo, Programa, Salon
-        programaciones = ProgramacionClase.query.filter_by(docente_id=docente.id).all()
-        for prog in programaciones:
-            curso = Curso.query.get(prog.curso_id)
-            modulo = Modulo.query.get(curso.modulo_id) if curso else None
-            programa = Programa.query.get(modulo.programa_id) if modulo else None
-            salon = Salon.query.get(prog.salon_id) if prog.salon_id else None
-            if curso:
-                cursos.append({
-                    "codigo": curso.id,
-                    "nombre": curso.nombre,
-                    "modulo": modulo.nombre if modulo else "",
-                    "programa": programa.nombre if programa else "",
-                    "periodo": prog.periodo_academico,
-                    "dia": prog.dia_semana,
-                    "hora": f"{prog.hora_inicio.strftime('%H:%M')} - {prog.hora_fin.strftime('%H:%M')}",
-                    "salon": salon.nombre if salon else "",
-                })
-    
-    return render_template('cursos_docente.html', cargas=cursos)
+
+    # obtener periodo pedido por query string (puede ser id o codigo)
+    periodo_param = request.args.get('periodo')  # ej. "2025-I" o "1"
+    selected_period = None
+    if periodo_param:
+        # intentar por id primero
+        try:
+            pid = int(periodo_param)
+            selected_period = Periodo.query.get(pid)
+        except (ValueError, TypeError):
+            selected_period = Periodo.query.filter_by(codigo=periodo_param).first()
+
+    # si no se especifica, elegir el período activo más reciente
+    if not selected_period:
+        selected_period = Periodo.query.filter_by(estado='activo').order_by(Periodo.id.desc()).first()
+        if not selected_period:
+            selected_period = Periodo.query.order_by(Periodo.id.desc()).first()
+
+    # obtener programaciones solo del periodo seleccionado (si hay)
+    if selected_period:
+        programaciones = ProgramacionClase.query.filter_by(docente_id=docente_id, periodo_id=selected_period.id).all()
+    else:
+        programaciones = []
+
+    # lista de periodos para el selector
+    periodos = Periodo.query.order_by(Periodo.id.desc()).all()
+
+    cargas = []
+    for prog in programaciones:
+        curso = Curso.query.get(prog.curso_id)
+        if not curso:
+            continue
+        modulo = Modulo.query.get(curso.modulo_id) if curso else None
+        programa = Programa.query.get(modulo.programa_id) if modulo else None
+        salon = Salon.query.get(prog.salon_id) if prog.salon_id else None
+        
+        # obtener número del módulo (fallback a id si no existe atributo 'numero')
+        modulo_num = None
+        if modulo:
+            modulo_num = getattr(modulo, 'numero', None) or getattr(modulo, 'id', None)
+
+
+        cargas.append({
+            "codigo": curso.id,
+            "nombre": curso.nombre,
+            "modulo": modulo.nombre if modulo else "",
+            "modulo_num": modulo_num,
+            "programa": programa.nombre if programa else "",
+            "periodo": getattr(selected_period, 'codigo', 'N/A'),
+            "dia": prog.dia_semana,
+            "hora": f"{prog.hora_inicio.strftime('%H:%M')} - {prog.hora_fin.strftime('%H:%M')}",
+            "salon": salon.nombre if salon else "",
+        })
+
+    return render_template(
+        'cursos_docente.html',
+        cargas=cargas,
+        periodos=periodos,
+        periodo_seleccionado=getattr(selected_period, 'id', None)
+    )
 
 @routes.route('/logout')
 def logout():
@@ -170,32 +329,94 @@ def logout():
     flash('Sesión cerrada correctamente', 'success')
     return redirect(url_for('routes.login'))
 
+
 @routes.route('/docente/evaluaciones')
 def evaluaciones_docente():
-    from models import Docente, ProgramacionClase, Curso, Matricula, Estudiante, Calificacion
+    from models import Docente, ProgramacionClase, Curso, Matricula, Estudiante, Calificacion, Periodo, Modulo, Programa
 
     docente_id = session.get('user_id')
     if not docente_id:
         return redirect(url_for('routes.login'))
 
-    # Obtén los cursos asignados al docente
-    programaciones = ProgramacionClase.query.filter_by(docente_id=docente_id).all()
-    cursos = [Curso.query.get(p.curso_id) for p in programaciones]
+    # periodo (id o codigo)
+    periodo_param = request.args.get('periodo')
+    selected_period = None
+    if periodo_param:
+        try:
+            pid = int(periodo_param)
+            selected_period = Periodo.query.get(pid)
+        except (ValueError, TypeError):
+            selected_period = Periodo.query.filter_by(codigo=periodo_param).first()
+
+    if not selected_period:
+        selected_period = Periodo.query.filter_by(estado='activo').order_by(Periodo.id.desc()).first()
+        if not selected_period:
+            selected_period = Periodo.query.order_by(Periodo.id.desc()).first()
+
+    # obtener programaciones del docente y (si aplica) del periodo
+    query = ProgramacionClase.query.filter_by(docente_id=docente_id)
+    if selected_period:
+        query = query.filter_by(periodo_id=selected_period.id)
+    programaciones = query.all()
+
+    # construir lista única de cursos presentes en esas programaciones (para el selector)
+    cursos_selector = []
+    seen = set()
+    for p in programaciones:
+        if not p.curso_id or p.curso_id in seen:
+            continue
+        seen.add(p.curso_id)
+        c = Curso.query.get(p.curso_id)
+        if c:
+            cursos_selector.append(c)
+
+    # filtro por curso si se pasa ?curso=<id>
+    curso_param = request.args.get('curso')
+    selected_curso = None
+    if curso_param:
+        try:
+            cid = int(curso_param)
+            selected_curso = Curso.query.get(cid)
+        except (ValueError, TypeError):
+            selected_curso = None
+
+    # si hay curso seleccionado, limitar programaciones a ese curso
+    if selected_curso:
+        programaciones = [p for p in programaciones if p.curso_id == selected_curso.id]
+        # opcional: reducir el selector para mostrar solo ese curso como seleccionado
+        # cursos_for_display = [selected_curso]
+    else:
+        # cursos_for_display = cursos_selector
+        pass
+
+    # ahora obtener cursos únicos finales a mostrar (los que provienen de programaciones filtradas)
+    cursos = []
+    seen = set()
+    for p in programaciones:
+        if not p.curso_id or p.curso_id in seen:
+            continue
+        seen.add(p.curso_id)
+        curso = Curso.query.get(p.curso_id)
+        if curso:
+            cursos.append(curso)
 
     alumnos = []
+    notas_alumnos = []
     for curso in cursos:
-        # Busca estudiantes matriculados en el módulo del curso
         matriculas = Matricula.query.filter_by(modulo_id=curso.modulo_id).all()
         for m in matriculas:
             estudiante = Estudiante.query.get(m.estudiante_id)
             if not estudiante:
                 continue
-            if estudiante.programa_estudio != curso.modulo.programa.nombre:
-                continue
+            try:
+                if estudiante.programa_estudio != curso.modulo.programa.nombre:
+                    continue
+            except Exception:
+                pass
             notas = []
-            for i in range(1, 9):
+            for i in range(1, 7):
                 cal = Calificacion.query.filter_by(
-                    estudiante_id=estudiante.codigo,
+                    estudiante_id=estudiante.id,
                     curso_id=curso.id,
                     tipo_evaluacion=f"Nota {i}"
                 ).first()
@@ -203,37 +424,90 @@ def evaluaciones_docente():
             alumnos.append({
                 "codigo": estudiante.codigo,
                 "curso": curso.nombre,
-                "seccion": "",  # Si tienes sección, agrégala aquí
+                "seccion": "", 
                 "nombre": estudiante.nombre_completo,
                 "notas": notas
             })
+            notas_alumnos.append(notas)
 
-    return render_template('evaluaciones_docente.html', alumnos=alumnos)
+    periodos = Periodo.query.order_by(Periodo.id.desc()).all()
+
+    return render_template(
+        'evaluaciones_docente.html',
+        alumnos=alumnos,
+        notas_alumnos=notas_alumnos,
+        periodos=periodos,
+        periodo_seleccionado=getattr(selected_period, 'id', None),
+        cursos_selector=cursos_selector,
+        curso_seleccionado=getattr(selected_curso, 'id', None)
+    )
 
 
 @routes.route('/docente/asistencia')
 def asistencia_docente():
-    # Ejemplo: consulta real (ajusta según tus modelos)
-    from models import ProgramacionClase, Curso, Salon, Programa, Modulo
+    from models import ProgramacionClase, Curso, Salon, Programa, Modulo, Periodo
+
     docente_id = session.get('user_id')
-    programaciones = ProgramacionClase.query.filter_by(docente_id=docente_id).all()
+    if not docente_id:
+        return redirect(url_for('routes.login'))
+
+    # obtener periodo pedido por query string (puede ser id o codigo)
+    periodo_param = request.args.get('periodo')  # ej. "2025-I" o "1"
+    selected_period = None
+    if periodo_param:
+        try:
+            pid = int(periodo_param)
+            selected_period = Periodo.query.get(pid)
+        except (ValueError, TypeError):
+            selected_period = Periodo.query.filter_by(codigo=periodo_param).first()
+
+    # si no se especifica, elegir el período activo más reciente
+    if not selected_period:
+        selected_period = Periodo.query.filter_by(estado='activo').order_by(Periodo.id.desc()).first()
+        if not selected_period:
+            selected_period = Periodo.query.order_by(Periodo.id.desc()).first()
+
+    # obtener programaciones solo del periodo seleccionado (si hay)
+    if selected_period:
+        programaciones = ProgramacionClase.query.filter_by(docente_id=docente_id, periodo_id=selected_period.id).all()
+    else:
+        programaciones = []
+
+    # lista de periodos para el selector
+    periodos = Periodo.query.order_by(Periodo.id.desc()).all()
+
     cargas = []
-        
     for prog in programaciones:
         curso = Curso.query.get(prog.curso_id)
+        if not curso:
+            continue
         modulo = Modulo.query.get(curso.modulo_id) if curso else None
         programa = Programa.query.get(modulo.programa_id) if modulo else None
         salon = Salon.query.get(prog.salon_id) if prog.salon_id else None
+        
+        modulo_num = None
+        if modulo:
+            modulo_num = getattr(modulo, 'numero', None ) or getattr(modulo, 'id', None)
 
         cargas.append({
             "codigo": curso.id,
             "nombre": curso.nombre,
-            "periodo": prog.periodo_academico,
             "modulo": modulo.nombre if modulo else "",
+            "modulo_num": modulo_num,
             "programa": programa.nombre if programa else "",
-            "salon": salon.nombre if salon else "", 
+            "periodo": getattr(selected_period, 'codigo', 'N/A'),
+            "dia": prog.dia_semana,
+            "hora": f"{prog.hora_inicio.strftime('%H:%M')} - {prog.hora_fin.strftime('%H:%M')}",
+            "salon": salon.nombre if salon else "",
         })
-    return render_template('asistencia_docente.html', cargas=cargas)
+
+    return render_template(
+        'asistencia_docente.html',
+        cargas=cargas,
+        periodos=periodos,
+        periodo_seleccionado=getattr(selected_period, 'id', None)
+    )
+# ...existing code...
 
 
 @routes.route('/docente/curso/<int:codigo>/evaluaciones', methods=['GET', 'POST'])
@@ -259,9 +533,9 @@ def ingresar_notas(codigo):
         if estudiante.programa_estudio != curso.modulo.programa.nombre:
             continue
         notas = {}
-        for i in range(1, 9):
+        for i in range(1, 7):
             cal = Calificacion.query.filter_by(
-                estudiante_id=estudiante.codigo,
+                estudiante_id=estudiante.id,  # Usar id numérico
                 curso_id=codigo,
                 tipo_evaluacion=f"Nota {i}"
             ).first()
@@ -276,23 +550,26 @@ def ingresar_notas(codigo):
         for est in estudiantes:
             nota = request.form.get(f"nota_{est['codigo']}")
             if nota is not None and nota != "":
-                calificacion = Calificacion.query.filter_by(
-                    estudiante_id=est['codigo'],
-                    curso_id=codigo,
-                    tipo_evaluacion=f"Nota {evaluacion_actual}"
-                ).first()
-                if not calificacion:
-                    calificacion = Calificacion(
-                        estudiante_id=est['codigo'],
+                # Buscar el estudiante por código para obtener su ID
+                estudiante_obj = Estudiante.query.filter_by(codigo=est['codigo']).first()
+                if estudiante_obj:
+                    calificacion = Calificacion.query.filter_by(
+                        estudiante_id=estudiante_obj.id,  # Usar id numérico
                         curso_id=codigo,
-                        valor=float(nota),
-                        tipo_evaluacion=f"Nota {evaluacion_actual}",
-                        fecha_registro=datetime.now().date()
-                    )
-                    db.session.add(calificacion)
-                else:
-                    calificacion.valor = float(nota)
-                    calificacion.fecha_registro = datetime.now().date()
+                        tipo_evaluacion=f"Nota {evaluacion_actual}"
+                    ).first()
+                    if not calificacion:
+                        calificacion = Calificacion(
+                            estudiante_id=estudiante_obj.id,  # Usar id numérico
+                            curso_id=codigo,
+                            valor=float(nota),
+                            tipo_evaluacion=f"Nota {evaluacion_actual}",
+                            fecha_registro=datetime.now().date()
+                        )
+                        db.session.add(calificacion)
+                    else:
+                        calificacion.valor = float(nota)
+                        calificacion.fecha_registro = datetime.now().date()
         db.session.commit()
         flash("Notas guardadas correctamente", "success")
         return redirect(url_for('routes.ingresar_notas', codigo=codigo, evaluacion=evaluacion_actual))
@@ -320,7 +597,7 @@ def consolidado_notas(codigo):
         count = 0
         for i in range(1, 9):
             cal = Calificacion.query.filter_by(
-                estudiante_id=estudiante.codigo,
+                estudiante_id=estudiante.id,  # Usar id numérico
                 curso_id=codigo,
                 tipo_evaluacion=f"Nota {i}"
             ).first()
@@ -450,20 +727,29 @@ def registrar_justificacion(codigo):
     from datetime import datetime
 
     curso = Curso.query.get(codigo)
-    # Busca asistencias no justificadas y con estado 'falta'
-    faltas = Asistencia.query.filter_by(curso_id=curso.id, estado='falta', justificada=False).all()
-    # Relaciona cada falta con el estudiante y su código
+    fecha_str = request.args.get('fecha')
+    fecha = None
     faltas_info = []
-    for f in faltas:
-        estudiante = Estudiante.query.get(f.estudiante_id)
-        if estudiante:
-            faltas_info.append({
-                "asistencia_id": f.id,
-                "codigo": estudiante.codigo,
-                "nombre": estudiante.nombre_completo,
-                "fecha": f.fecha,
-                "observacion": f.observacion or ""
-            })
+
+    if fecha_str:
+        fecha = datetime.strptime(fecha_str, "%Y-%m-%d").date()
+        # Solo busca faltas de esa fecha
+        faltas = Asistencia.query.filter_by(
+            curso_id=curso.id,
+            estado='falta',
+            justificada=False,
+            fecha=fecha
+        ).all()
+        for f in faltas:
+            estudiante = Estudiante.query.get(f.estudiante_id)
+            if estudiante:
+                faltas_info.append({
+                    "asistencia_id": f.id,
+                    "codigo": estudiante.codigo,
+                    "nombre": estudiante.nombre_completo,
+                    "fecha": f.fecha,
+                    "observacion": f.observacion or ""
+                })
 
     if request.method == 'POST':
         codigo_estudiante = request.form.get('codigo_estudiante')
@@ -489,10 +775,15 @@ def registrar_justificacion(codigo):
                 flash("No se encontró la falta para justificar.", "danger")
         else:
             flash("No se encontró el estudiante con ese código.", "danger")
-        return redirect(url_for('routes.registrar_justificacion', codigo=codigo))
+        return redirect(url_for('routes.registrar_justificacion', codigo=codigo, fecha=fecha_str))
 
-    return render_template('registrar_justificacion.html', faltas=faltas_info, codigo=codigo, cursos_nombre=curso.nombre)
-
+    return render_template(
+        'registrar_justificacion.html',
+        faltas=faltas_info,
+        codigo=codigo,
+        cursos_nombre=curso.nombre,
+        fecha=fecha_str
+    )
 
 @routes.route('/docente/curso/<int:codigo>/reporte_asistencia')
 def reporte_asistencia(codigo):
@@ -519,15 +810,25 @@ def reporte_asistencia(codigo):
         fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d").date()
         asistencias_query = asistencias_query.filter(Asistencia.fecha <= fecha_fin)
 
-    asistencias = asistencias_query.all()
+    asistencias = asistencias_query.all() if (fecha_inicio_str or fecha_fin_str) else []
     fechas = sorted(list({a.fecha for a in asistencias}))
 
     asistencia_dict = {e.id: {} for e in estudiantes}
     for a in asistencias:
         asistencia_dict[a.estudiante_id][a.fecha] = a.estado
-
+        est_id = getattr(a, 'estudiante_id', None)
+        fecha = getattr(a, 'fecha', None)
+        estado = getattr(a, 'estado', None)
+        # intentar obtener campo de justificación/observación si existe
+        try:
+            just = getattr(a, 'observacion', None) or getattr(a, 'justificacion', None) or ''
+        except Exception:
+            just = ''
+        if est_id is not None:
+            asistencia_dict.setdefault(est_id, {})[fecha] = {'estado': estado, 'justificacion': just}
+            
     return render_template(
-        'reporte_asistencia.html',
+        'reporte_asis.html',
         estudiantes=estudiantes,
         fechas=fechas,
         asistencia_dict=asistencia_dict,
@@ -537,35 +838,52 @@ def reporte_asistencia(codigo):
         fecha_fin=fecha_fin_str or ""
     )
     
-    
-import os
-from werkzeug.utils import secure_filename
 
 @routes.route('/docente/material_academico', methods=['GET', 'POST'])
 def material_academico():
-    UPLOAD_FOLDER = 'static/uploads/material_academico'
+    UPLOAD_ROOT = os.path.join(current_app.root_path, 'static', 'uploads', 'material_academico')
     ALLOWED_EXTENSIONS = {'pdf', 'xls', 'xlsx', 'csv', 'doc', 'docx', 'ppt', 'pptx'}
+
+    periodo = request.form.get('periodo') or request.args.get('periodo') or 'general'
+    curso = request.form.get('curso') or request.args.get('curso') or 'general'
+
+    # crear carpeta por periodo/curso
+    safe_periodo = secure_filename(str(periodo))
+    safe_curso = secure_filename(str(curso))
+    UPLOAD_FOLDER = os.path.join(UPLOAD_ROOT, safe_periodo, safe_curso)
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     if request.method == 'POST':
         archivo = request.files.get('archivo')
         if archivo and '.' in archivo.filename and archivo.filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS:
             filename = secure_filename(archivo.filename)
-            os.makedirs(UPLOAD_FOLDER, exist_ok=True)
             ruta = os.path.join(UPLOAD_FOLDER, filename)
             archivo.save(ruta)
             flash("Archivo subido correctamente", "success")
         else:
             flash("Archivo no permitido", "danger")
-        return redirect(url_for('routes.material_academico'))
+        return redirect(url_for('routes.material_academico', periodo=periodo, curso=curso))
 
+    # listar archivos del periodo/curso seleccionado
     archivos = []
     if os.path.exists(UPLOAD_FOLDER):
         archivos = os.listdir(UPLOAD_FOLDER)
 
+    # además pasar listas de periodos y cursos para el selector en la plantilla
+    # puedes obtenerlos desde la BD si tienes modelo Periodo/Curso:
+    from models import Periodo, Curso as CursoModel
+    periodos = Periodo.query.order_by(Periodo.id.desc()).all() if 'Periodo' in globals() or 'Periodo' in dir() else []
+    cursos = CursoModel.query.order_by(CursoModel.id).all() if CursoModel else []
+
     return render_template(
         'material_academico.html',
-        archivos=archivos
+        archivos=archivos,
+        periodo_seleccionado=periodo,
+        curso_seleccionado=curso,
+        periodos=periodos,
+        cursos=cursos
     )
+    
     
 @routes.route('/docente/horario')
 def horario_docente():
@@ -582,17 +900,203 @@ def horario_docente():
             "hora_inicio": prog.hora_inicio.strftime('%H:%M'),
             "hora_fin": prog.hora_fin.strftime('%H:%M'),
             "salon": salon.nombre if salon else "",
-            "periodo": prog.periodo_academico
+            "periodo": getattr(prog.periodo, 'codigo', '2024-II') if hasattr(prog, 'periodo') and prog.periodo else '2024-II'
         })
     return render_template('horario_docente.html', horario=horario)
 
+from flask import request, url_for, render_template, make_response
+try:
+    from weasyprint import HTML
+except Exception:
+    HTML = None
 
-@routes.route('/_api/modulos/<programa_id>')
-def api_modulos(programa_id):
+def _pdf_response_from_html(html, filename, inline=False):
+    if HTML is None:
+        return ("WeasyPrint no está instalado en el servidor", 500)
+    pdf = HTML(string=html, base_url=request.base_url).write_pdf()
+    resp = make_response(pdf)
+    resp.headers['Content-Type'] = 'application/pdf'
+    disposition = 'inline' if inline else 'attachment'
+    resp.headers['Content-Disposition'] = f'{disposition}; filename={filename}'
+    return resp
 
-    mods = Modulo.query.filter_by(programa_id=programa_id).all()
-    out = [{"id": m.id, "nombre": m.nombre, "periodo_academico": m.periodo_academico} for m in mods]
-    return jsonify(out)
+@routes.route('/docente/curso/<int:codigo>/reporte_curso_pdf_inline')
+def reporte_curso_pdf_inline(codigo):
+    try:
+        from models import Curso, ProgramacionClase, Docente, Matricula, Estudiante, Modulo, Programa, Calificacion
+    except Exception:
+        Curso = ProgramacionClase = Docente = Matricula = Estudiante = Modulo = Programa = Calificacion = None
+
+    curso = Curso.query.get(codigo) if Curso else None
+    prog = ProgramacionClase.query.filter_by(curso_id=getattr(curso, 'id', None)).first() if ProgramacionClase and curso else None
+    docente = Docente.query.get(getattr(prog, 'docente_id', None)) if prog and Docente else None
+    modulo = Modulo.query.get(getattr(curso, 'modulo_id', None)) if Modulo and curso else None
+    programa = None
+    try:
+        programa = Programa.query.get(getattr(modulo, 'programa_id', None)) if modulo and Programa else None
+    except Exception:
+        programa = None
+
+    # Obtener matriculas del curso (prefiere curso_id, sino modulo_id)
+    matriculas = []
+    if Matricula and curso:
+        try:
+            if hasattr(Matricula, 'curso_id'):
+                matriculas = Matricula.query.filter_by(curso_id=getattr(curso, 'id', None)).all()
+            elif hasattr(Matricula, 'modulo_id'):
+                matriculas = Matricula.query.filter_by(modulo_id=getattr(curso, 'modulo_id', None)).all()
+            else:
+                matriculas = []
+        except Exception:
+            matriculas = []
+
+    # Forzar 6 notas visibles
+    MAX_NOTAS = 6
+
+    alumnos = []
+    if Matricula and Estudiante and curso:
+        for m in matriculas:
+            est = Estudiante.query.get(getattr(m, 'estudiante_id', None))
+            if not est:
+                continue
+
+            # filtrar por programa si corresponde
+            try:
+                if modulo and programa and hasattr(est, 'programa_estudio'):
+                    if (getattr(est, 'programa_estudio', '') or '') != (getattr(programa, 'nombre', '') or ''):
+                        continue
+            except Exception:
+                pass
+
+            # obtener teléfono (varios posibles campos)
+            telefono = ''
+            try:
+                telefono = (getattr(est, 'telefono', None) or
+                            getattr(est, 'celular', None) or
+                            (getattr(est, 'info', None) and getattr(est.info, 'celular', None)) or
+                            '')
+            except Exception:
+                telefono = ''
+
+            notas_list = []
+            promedio = ""
+            if Calificacion:
+                cals = Calificacion.query.filter_by(estudiante_id=getattr(est, 'id', None), curso_id=getattr(curso, 'id', None)).all()
+                cal_map = { (getattr(c, 'tipo_evaluacion', '') or ''): getattr(c, 'valor', '') for c in (cals or []) }
+                for i in range(1, MAX_NOTAS + 1):
+                    key = f"Nota {i}"
+                    val = cal_map.get(key, "")
+                    notas_list.append(val)
+                valores = []
+                for v in notas_list:
+                    try:
+                        if v is not None and v != "":
+                            valores.append(float(v))
+                    except Exception:
+                        pass
+                promedio = round(sum(valores) / len(valores), 2) if valores else ""
+
+            alumnos.append({
+                'codigo': getattr(est, 'codigo', ''),
+                'nombre': getattr(est, 'nombre_completo', getattr(est, 'nombre', '')),
+                'telefono': telefono,
+                'notas': notas_list,
+                'promedio': promedio
+            })
+
+    fecha = request.args.get('fecha') or ''
+    html = render_template('reporte_curso.html',
+                           curso=curso, docente=docente, modulo=modulo, programa=programa,
+                           alumnos=alumnos, fecha=fecha, notas_count=MAX_NOTAS)
+    return _pdf_response_from_html(html, f'reporte_curso_{codigo}.pdf', inline=True)
+
+@routes.route('/docente/curso/<int:codigo>/reporte_asistencia_pdf_inline')
+def reporte_asistencia_pdf_inline(codigo):
+    try:
+        from models import Curso, Matricula, Estudiante, Asistencia, Modulo, Programa, Docente, ProgramacionClase
+    except Exception:
+        Curso = Matricula = Estudiante = Asistencia = Modulo = Programa = Docente = ProgramacionClase = None
+
+    curso = Curso.query.get(codigo) if Curso else None
+    prog = ProgramacionClase.query.filter_by(curso_id=getattr(curso, 'id', None)).first() if ProgramacionClase and curso else None
+    docente = Docente.query.get(getattr(prog, 'docente_id', None)) if prog and Docente else None
+    modulo = Modulo.query.get(getattr(curso, 'modulo_id', None)) if Modulo and curso else None
+    programa = None
+    try:
+        programa = Programa.query.get(getattr(modulo, 'programa_id', None)) if modulo and Programa else None
+    except Exception:
+        programa = None
+
+    # Obtener matriculas del curso (prefiere curso_id)
+    matriculas = []
+    if Matricula and curso:
+        try:
+            if hasattr(Matricula, 'curso_id'):
+                matriculas = Matricula.query.filter_by(curso_id=getattr(curso, 'id', None)).all()
+            elif hasattr(Matricula, 'modulo_id'):
+                matriculas = Matricula.query.filter_by(modulo_id=getattr(curso, 'modulo_id', None)).all()
+            else:
+                matriculas = []
+        except Exception:
+            matriculas = []
+
+    # recopilar fechas globales del curso (para %)
+    fechas = set()
+    alumnos = []
+    if Matricula and Estudiante and Asistencia and curso:
+        # recopilar fechas solo entre matriculas válidas
+        for m in matriculas:
+            est_tmp = Estudiante.query.get(getattr(m, 'estudiante_id', None))
+            if not est_tmp:
+                continue
+            # filtrar por programa si corresponde
+            try:
+                if modulo and programa and hasattr(est_tmp, 'programa_estudio'):
+                    if (getattr(est_tmp, 'programa_estudio', '') or '') != (getattr(programa, 'nombre', '') or ''):
+                        continue
+            except Exception:
+                pass
+            rows = Asistencia.query.filter_by(estudiante_id=getattr(est_tmp, 'id', None), curso_id=getattr(curso, 'id', None)).all()
+            for r in (rows or []):
+                fechas.add(getattr(r, 'fecha', None))
+
+        # luego crear la lista de alumnos a mostrar (solo matriculados y del programa)
+        for m in matriculas:
+            est = Estudiante.query.get(getattr(m, 'estudiante_id', None))
+            if not est:
+                continue
+            try:
+                if modulo and programa and hasattr(est, 'programa_estudio'):
+                    if (getattr(est, 'programa_estudio', '') or '') != (getattr(programa, 'nombre', '') or ''):
+                        continue
+            except Exception:
+                pass
+
+            asistencias = Asistencia.query.filter_by(estudiante_id=getattr(est, 'id', None), curso_id=getattr(curso, 'id', None)).all()
+            faltas = sum(1 for a in (asistencias or []) if (getattr(a, 'estado', '') or '').lower() in ('falta', 'absent', 'absente', 'no', 'n'))
+            telefono = ''
+            try:
+                telefono = (getattr(est, 'telefono', None) or getattr(est, 'celular', None) or (getattr(est, 'info', None) and getattr(est.info, 'celular', None)) or '')
+            except Exception:
+                telefono = ''
+            alumnos.append({
+                'nombre': getattr(est, 'nombre_completo', getattr(est, 'nombre', '')),
+                'codigo': getattr(est, 'codigo', ''),
+                'faltas': faltas,
+                'telefono': telefono
+            })
+
+    fechas = sorted([f for f in fechas if f is not None])
+    total_sesiones_global = len(fechas) or 0
+    for a in alumnos:
+        a['porcentaje'] = round((a.get('faltas', 0) / total_sesiones_global) * 100, 2) if total_sesiones_global else 0.0
+        a['excede_30'] = a['porcentaje'] > 30.0
+
+    html = render_template('reporte_asistencia.html',
+                           curso=curso, docente=docente, modulo=modulo, programa=programa,
+                           alumnos=alumnos, fechas=fechas, fecha=request.args.get('fecha') or '')
+    return _pdf_response_from_html(html, f'reporte_asistencia_{codigo}.pdf', inline=True)
+
 
 @routes.route('/administrador/inicio')
 def inicio_admin():
@@ -621,11 +1125,9 @@ def estudiantes_admin():
         programa = getattr(e, 'programa_estudio', '') or ''
         sexo = getattr(e, 'sexo', '') or ''
         edad = calcular_edad(getattr(e, 'fecha_nacimiento', None))
-
+        celular = getattr(e, 'celular','') or ''
         # teléfono desde EstudianteInfo si existe
-        telefono = ''
-        if getattr(e, 'info', None):
-            telefono = getattr(e.info, 'celular', '') or ''
+
 
         # trabaja: por ahora no existe ese campo en tu modelo, dejar False
         trabaja = False
@@ -646,7 +1148,7 @@ def estudiantes_admin():
             "programa": programa,
             "sexo": sexo,
             "edad": edad,
-            "telefono": telefono,
+            "telefono": celular,
             "trabaja": trabaja,
             "modulo": modulo_nombre,
         })
@@ -718,103 +1220,108 @@ def gestion_programas():
 
 @routes.route('/administrador/crear_estudiante', methods=['GET', 'POST'])
 def crear_estudiante():
-    
-
     if request.method == 'POST':
-        # Obtener campos del formulario
+        # 1️⃣ Obtener datos del formulario
+        dni = request.form.get('dni', '').strip()
         apellidos = request.form.get('apellidos', '').strip()
         nombres = request.form.get('nombres', '').strip()
-        nombre_completo = f"{apellidos} {nombres}".strip()
-        programa = request.form.get('programa', '').strip()
-        dni = request.form.get('dni', '').strip()
         sexo = request.form.get('sexo', '').strip()
         fecha_nacimiento_raw = request.form.get('fecha_nacimiento', '').strip()
-        celular = request.form.get('celular', '').strip()
-        direccion = request.form.get('direccion', '').strip()
+        pais = request.form.get('pais', '').strip()
         departamento = request.form.get('departamento', '').strip()
         provincia = request.form.get('provincia', '').strip()
         distrito = request.form.get('distrito', '').strip()
+        programa = request.form.get('programa', '').strip()
+        esta_trabajando = request.form.get('esta_trabajando') == 'on'
+        centro_trabajo = request.form.get('centro_trabajo', '').strip()
+        puesto_trabajo = request.form.get('puesto_trabajo', '').strip()
+        estado_civil = request.form.get('estado_civil', '').strip()
+        numero_hijos = request.form.get('numero_hijos', '').strip()
+        celular = request.form.get('celular', '').strip()
+        domicilio = request.form.get('domicilio', '').strip()
+        nivel_educacion = request.form.get('nivel_educacion', '').strip()
+        nombre_colegio = request.form.get('nombre_colegio', '').strip()
+        celular_familiar_contacto = request.form.get('celular_familiar_contacto', '').strip()
+        link_foto_dni = request.form.get('link_foto_dni', '').strip()
+        medio_conocimiento = request.form.get('medio_conocimiento', '').strip()
 
-        # Validaciones mínimas
-        if not (apellidos and nombres and programa and dni):
-            flash("Por favor completa los campos obligatorios: apellidos, nombres, programa y DNI.", "error")
+        # 2️⃣ Validaciones básicas
+        if not (dni and apellidos and nombres and sexo):
+            flash("Por favor completa los campos obligatorios: DNI, apellidos, nombres y sexo.", "error")
             return render_template('crear_estudiante.html', form=request.form)
 
-        # Parsear fecha (acepta dd/mm/YYYY o d/m/YYYY)
+        # 3️⃣ Parsear fecha
         fecha_nacimiento = None
         if fecha_nacimiento_raw:
-            for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d"):
+            for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
                 try:
                     fecha_nacimiento = datetime.strptime(fecha_nacimiento_raw, fmt).date()
                     break
                 except ValueError:
                     continue
             if not fecha_nacimiento:
-                flash("Fecha de nacimiento inválida. Usa formato DD/MM/AAAA.", "error")
+                flash("Formato de fecha inválido. Usa DD/MM/AAAA.", "error")
                 return render_template('crear_estudiante.html', form=request.form)
 
-        # Generar usuario/email/codigo por convención (puedes ajustar)
+        # 4️⃣ Generar datos automáticos de usuario
         usuario_nombre = (nombres.split()[0].lower() if nombres else 'user') + dni[-3:]
         email_institucional = f"{usuario_nombre}@cedhi.edu.pe"
         codigo = f"EST-{dni}"
 
-        # Crear entradas en BD
+        # 5️⃣ Crear registros
         try:
-            # 1) crear usuario
             usuario = Usuario(
                 usuario=usuario_nombre,
-                password=generate_password_hash("123456"),  # contraseña por defecto; pedir cambio luego
+                password=generate_password_hash("123456"),
                 email=email_institucional,
                 rol="estudiante"
             )
             db.session.add(usuario)
-            db.session.flush()  # obtener usuario.id sin commitear aún
-
-            # 2) crear estudiante
-            estudiante = Estudiante(
-                id=usuario.id,
-                nombre_completo=nombre_completo,
-                programa_estudio=programa,
-                codigo=codigo,
-                dni=dni,
-                sexo=sexo,
-                fecha_nacimiento=fecha_nacimiento
-            )
-            db.session.add(estudiante)
             db.session.flush()
 
-            # 3) crear info adicional
-            info = EstudianteInfo(
-                estudiante_id=estudiante.id,
-                direccion=direccion or None,
-                departamento=departamento or None,
-                provincia=provincia or None,
-                distrito=distrito or None,
-                celular=celular or None
+            estudiante = Estudiante(
+                id=usuario.id,
+                dni=dni,
+                apellidos=apellidos,
+                nombres=nombres,
+                sexo=sexo,
+                fecha_nacimiento=fecha_nacimiento,
+                pais_nacimiento=pais or None,
+                departamento_nacimiento=departamento or None,
+                provincia_nacimiento=provincia or None,
+                distrito_nacimiento=distrito or None,
+                programa_estudio=programa or None,
+                esta_trabajando=esta_trabajando,
+                centro_trabajo=centro_trabajo or None,
+                puesto_trabajo=puesto_trabajo or None,
+                estado_civil=estado_civil or None,
+                numero_hijos=int(numero_hijos) if numero_hijos else None,
+                celular=celular or None,
+                domicilio=domicilio or None,
+                nivel_educacion=nivel_educacion or None,
+                nombre_colegio=nombre_colegio or None,
+                celular_familiar_contacto=celular_familiar_contacto or None,
+                link_foto_dni=link_foto_dni or None,
+                medio_conocimiento=medio_conocimiento or None,
             )
-            db.session.add(info)
+
+            db.session.add(estudiante)
             db.session.commit()
 
-        except IntegrityError as ie:
+        except IntegrityError:
             db.session.rollback()
-            # detectar campo duplicado básico: email, dni o codigo únicos
-            msg = str(ie.orig) if hasattr(ie, 'orig') else str(ie)
-            if 'UNIQUE' in msg.upper() or 'unique' in msg.lower():
-                flash("Error: ya existe un estudiante/usuario con ese DNI, código o email.", "error")
-            else:
-                flash("Error al crear el estudiante (integridad). Revisa los datos.", "error")
+            flash("Error: ya existe un estudiante con ese DNI o usuario.", "error")
             return render_template('crear_estudiante.html', form=request.form)
-
         except Exception as e:
             db.session.rollback()
-            routes.logger.exception("Error creando estudiante:")
-            flash("Ocurrió un error al crear el estudiante.", "error")
+            flash("Error al crear el estudiante.", "error")
+            print("Error:", e)
             return render_template('crear_estudiante.html', form=request.form)
 
-        flash(f"Estudiante {nombre_completo} creado correctamente (usuario: {usuario_nombre}).", "success")
+        flash(f"Estudiante {apellidos} {nombres} creado correctamente.", "success")
         return redirect(url_for('routes.estudiantes_admin'))
 
-    # GET -> mostrar formulario vacío
+    # GET -> renderizar formulario vacío
     return render_template('crear_estudiante.html', form={})
 
 @routes.route('/administrador/programas/new', methods=['GET', 'POST'])
@@ -1166,6 +1673,73 @@ def matricular_modulo(ma_id):
                            modulo_activo=ma,
                            estudiantes=estudiantes_no,
                            query=q or "")
+
+@routes.route('/administrador/reportes')
+def reportes_admin():
+    programas = Programa.query.all()
+    modulos = ["1","2","3","4"]
+    periodos = ["2025-1", "2025-2"]
+    return render_template('reportes.html', programas=programas, modulos=modulos, periodos=periodos)
+
+@routes.route('/administrador/reportes/vista_previa', methods=['POST'])
+def vista_previa_reporte():
+    data = request.get_json()
+    programa_id = data.get("programa_id")
+    modulo = data.get("modulo")
+    periodo = data.get("periodo")
+
+    # Simulación: luego reemplaza con consultas reales
+    reporte = [
+        {"dni": "12345678", "nombre": "Juan Pérez", "asistencia": 95, "nota": 18, "estado": "Aprobado"},
+        {"dni": "87654321", "nombre": "María González", "asistencia": 88, "nota": 16, "estado": "Aprobado"},
+        {"dni": "11223344", "nombre": "Carlos Ruiz", "asistencia": 92, "nota": 14, "estado": "Aprobado"},
+        {"dni": "55667788", "nombre": "Ana López", "asistencia": 75, "nota": 10, "estado": "Desaprobado"},
+    ]
+
+    return jsonify({"reporte": reporte})
+
+@routes.route('/administrador/reportes/pdf', methods=['POST'])
+def generar_pdf_reporte():
+    data = request.get_json()
+    reporte = data.get("reporte", [])
+    programa = data.get("programa", "N/A")
+    modulo = data.get("modulo", "N/A")
+    periodo = data.get("periodo", "N/A")
+
+    buffer = BytesIO()
+    p = canvas.Canvas(buffer, pagesize=letter)
+    p.setFont("Helvetica-Bold", 14)
+    p.drawString(100, 750, f"Reporte Académico - {programa}")
+    p.setFont("Helvetica", 12)
+    p.drawString(100, 730, f"Módulo: {modulo} | Periodo: {periodo}")
+    p.drawString(100, 710, f"Generado el: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+
+    y = 680
+    p.setFont("Helvetica-Bold", 10)
+    p.drawString(80, y, "DNI")
+    p.drawString(160, y, "Nombre")
+    p.drawString(300, y, "Asistencia")
+    p.drawString(400, y, "Nota")
+    p.drawString(470, y, "Estado")
+
+    y -= 20
+    p.setFont("Helvetica", 10)
+    for est in reporte:
+        p.drawString(80, y, est["dni"])
+        p.drawString(160, y, est["nombre"])
+        p.drawString(300, y, f"{est['asistencia']}%")
+        p.drawString(400, y, str(est["nota"]))
+        p.drawString(470, y, est["estado"])
+        y -= 20
+        if y < 100:
+            p.showPage()
+            y = 750
+
+    p.save()
+    buffer.seek(0)
+
+    return send_file(buffer, as_attachment=True, download_name="reporte_academico.pdf", mimetype="application/pdf")
+
 
 
 @routes.route('/')
