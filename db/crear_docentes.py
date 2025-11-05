@@ -14,7 +14,7 @@ docentes_data = [
         "email": "jcrespo@cedhinuevaarequipa.edu.pe",
         "rol": "docente",
         "nombre_completo": "Padre Jose Gonzalez Crespo",
-        "dni": "000845607",
+        "dni": "00084560",
         "celular": "903366182",
         "correo_personal": "josegonzalezcrespo2021@gmail.com",
         "fecha_nacimiento": "1993-10-04"
