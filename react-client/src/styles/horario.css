@@ -1,0 +1,94 @@
+/* src/styles/horario.css (Asegúrate de importar esto en tu App principal) */
+
+/* Estilos base para la tabla */
+.horario-container {
+    width: 100%;
+    margin: 20px 0;
+    overflow-x: auto; /* Permite scroll horizontal si es necesario en tablets */
+}
+
+.horario-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    min-width: 700px; /* Asegura que la tabla no se colapse en escritorio */
+}
+
+.horario-table th, .horario-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+    vertical-align: top;
+}
+
+.horario-table thead th {
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+}
+
+.time-cell {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    width: 100px; /* Ancho fijo para la columna de la hora */
+    position: sticky;
+    left: 0;
+    z-index: 10;
+}
+
+.course-cell {
+    background-color: #f0f0f0;
+    min-width: 120px;
+    height: 70px; /* Altura mínima para legibilidad */
+}
+
+.course-cell.active {
+    background-color: #e6f7ff; /* Azul claro */
+    border-left: 3px solid #007bff;
+    text-align: left;
+}
+
+.course-content {
+    display: flex;
+    flex-direction: column;
+    padding: 2px 5px;
+    font-size: 0.85rem;
+}
+
+.course-name {
+    font-weight: 700;
+    color: #004085;
+}
+
+.course-detail {
+    font-size: 0.75rem;
+    color: #6c757d;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* ====================================================== */
+/* 📱 RESPONSIVE DESIGN (Vista Móvil) */
+/* ====================================================== */
+
+@media (max-width: 768px) {
+    /* Oculta la tabla clásica */
+    .horario-table {
+        display: none;
+    }
+    
+    /* Nota: Para una solución móvil completa, se necesitaría un componente 
+       alternativo que muestre una lista vertical de tarjetas.
+       Aquí se simula el espacio para el componente alternativo: */
+    .horario-container::after {
+        content: "Cambiar a vista de tarjeta para móvil";
+        display: block;
+        padding: 20px;
+        text-align: center;
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+        margin-top: 10px;
+    }
+}
