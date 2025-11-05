@@ -1,37 +1,91 @@
 {% extends "base_docente.html" %}
 {% block title %}Ficha Personal{% endblock %}
+
 {% block content %}
-<h2 style="color:#1976d2; margin-bottom:28px;">Ficha Personal del Docente</h2>
-<form method="POST" style="max-width:500px; background:#fff; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.08); padding:36px 28px 28px 28px;">
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">Usuario:</label>
-    <input type="text" value="{{ usuario.usuario }}" disabled style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px; background:#eceff1; color:#78909c;">
+<div style="max-width: 950px; margin-left: 60px;">
+  <h2 style="color:#1976d2; margin-bottom:20px;">Ficha Personal del Docente</h2>
 
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">Nombre Completo:</label>
-    <input type="text" value="{{ docente.nombre_completo or '' }}" readonly style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px; background:#eceff1; color:#78909c;">
-
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">DNI:</label>
-    <input type="text" value="{{ docente.dni or '' }}" readonly style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px; background:#eceff1; color:#78909c;">
-
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">Celular:</label>
-    <input type="text"
-        name="celular"
-        value="{{ docente.celular or '' }}"
-        pattern="\d{9}"
-        maxlength="9"
-        minlength="9"
-        inputmode="numeric"
-        title="Debe ingresar exactamente 9 dígitos"
-        style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px;">
+  <form method="POST"
+        style="background:#fff; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,0.08);
+               padding:36px 40px; border:1px solid #f1f3f5;">
     
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">Correo personal:</label>
-    <input type="email" name="correo_personal" value="{{ docente.correo_personal or '' }}" style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px;">
+    <!-- GRID 2 COLUMNAS -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:25px 30px;">
 
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">Correo institucional:</label>
-    <input type="email" value="{{ docente.usuario.email }}" disabled style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px; background:#eceff1; color:#78909c;">
+      <!-- Usuario -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">Usuario:</label>
+        <input type="text" value="{{ usuario.usuario }}" disabled
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;
+                      background:#eceff1; color:#78909c;">
+      </div>
 
-    <label style="display:block; margin-top:18px; color:#2d3e50; font-weight:bold;">Fecha de Nacimiento:</label>
-    <input type="date" value="{{ docente.fecha_nacimiento.strftime('%Y-%m-%d') if docente.fecha_nacimiento else '' }}" readonly style="width:100%; padding:10px; border:1px solid #b0bec5; border-radius:6px; background:#eceff1; color:#78909c;">
+      <!-- Nombre Completo -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">Nombre Completo:</label>
+        <input type="text" value="{{ docente.nombre_completo or '' }}" readonly
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;
+                      background:#eceff1; color:#78909c;">
+      </div>
 
-    <button type="submit" style="margin-top:30px; width:100%; padding:12px; background:#1976d2; color:#fff; border:none; border-radius:6px; font-size:1.1em; font-weight:bold; cursor:pointer; transition:background 0.2s;">Guardar cambios</button>
-</form>
+      <!-- DNI -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">DNI:</label>
+        <input type="text" value="{{ docente.dni or '' }}" readonly
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;
+                      background:#eceff1; color:#78909c;">
+      </div>
+
+      <!-- Celular -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">Celular:</label>
+        <input type="text"
+               name="celular"
+               value="{{ docente.celular or '' }}"
+               pattern="\d{9}" maxlength="9" minlength="9"
+               inputmode="numeric"
+               title="Debe ingresar exactamente 9 dígitos"
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;">
+      </div>
+
+      <!-- Correo personal -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">Correo Personal:</label>
+        <input type="email" name="correo_personal" value="{{ docente.correo_personal or '' }}"
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;">
+      </div>
+
+      <!-- Correo institucional -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">Correo Institucional:</label>
+        <input type="email" value="{{ docente.usuario.email }}" disabled
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;
+                      background:#eceff1; color:#78909c;">
+      </div>
+
+      <!-- Fecha de Nacimiento -->
+      <div>
+        <label style="display:block; color:#2d3e50; font-weight:600;">Fecha de Nacimiento:</label>
+        <input type="date"
+               value="{{ docente.fecha_nacimiento.strftime('%Y-%m-%d') if docente.fecha_nacimiento else '' }}"
+               readonly
+               style="width:100%; padding:11px; border:1px solid #b0bec5; border-radius:6px;
+                      background:#eceff1; color:#78909c;">
+      </div>
+
+    </div>
+
+    <!-- BOTÓN -->
+    <div style="text-align:right; margin-top:30px;">
+      <button type="submit"
+              style="padding:12px 26px; background:#1976d2; color:#fff; border:none;
+                     border-radius:6px; font-size:1.05em; font-weight:600; cursor:pointer;
+                     transition:background 0.2s;">
+        Guardar Cambios
+      </button>
+    </div>
+
+  </form>
+</div>
 {% endblock %}
+

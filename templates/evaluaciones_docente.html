@@ -1,57 +1,93 @@
 {% extends "base_docente.html" %}
 {% block title %}Evaluaciones y Notas{% endblock %}
+
 {% block content %}
-<h2 style="color:#1976d2; margin-bottom:18px;">Evaluaciones y Notas</h2>
-<div style="display:flex; gap:32px;">
-  <!-- Columna izquierda: Estudiantes -->
-  <div style="flex:1; background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px;">
-    <div style="margin-bottom:14px;">
-      <button style="background:#1976d2; color:#fff; border:none; border-radius:5px; padding:8px 16px; font-weight:bold; margin-right:8px;">Ingresar Notas</button>
-      <button style="background:#fff59d; color:#333; border:none; border-radius:5px; padding:8px 16px; font-weight:bold;">Calcular Promedio</button>
-    </div>
-    <table style="width:100%; border-collapse:collapse;">
-      <tr style="background:#e3eafc; color:#1976d2;">
-        <th style="padding:6px;">#</th>
-        <th style="padding:6px;">Código</th>
-        <th style="padding:6px;">Curso</th>
-        <th style="padding:6px;">Sec.</th>
-        <th style="padding:6px;">Estudiante</th>
-      </tr>
-      {% for alumno in alumnos %}
-      <tr style="background:{{ loop.index0 % 2 == 0 and '#f9fafb' or '#fff' }};">
-        <td style="padding:6px;">{{ loop.index }}</td>
-        <td style="padding:6px;">{{ alumno.codigo }}</td>
-        <td style="padding:6px;">{{ alumno.curso }}</td>
-        <td style="padding:6px;">{{ alumno.seccion }}</td>
-        <td style="padding:6px;">{{ alumno.nombre }}</td>
-      </tr>
+<h2 style="color:#1976d2; margin-bottom:18px; padding-bottom:6px; border-bottom:2px solid #e3eafc;">
+  Evaluaciones y Notas
+</h2>
+
+<div style="margin-bottom:16px;">
+  <form id="filterForm" method="get" action="{{ url_for('routes.evaluaciones_docente') }}" style="display:inline-flex; gap:12px; align-items:center;">
+    <label for="periodo" style="font-weight:600;">Período:</label>
+    <select name="periodo" id="periodo" onchange="document.getElementById('filterForm').submit()" style="padding:6px;border-radius:6px;border:1px solid #ccc;">
+      {% for p in periodos %}
+        <option value="{{ p.id }}" {% if periodo_seleccionado == p.id %}selected{% endif %}>{{ p.codigo }}</option>
       {% endfor %}
-    </table>
-  </div>
-  <!-- Columna derecha: Notas -->
-  <div style="flex:1.2; background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px;">
-    <table style="width:100%; border-collapse:collapse;">
-      <tr style="background:#fff9c4;">
-        <th colspan="8" style="padding:8px; color:#333;">NOTAS</th>
-      </tr>
-      <tr style="background:#ff7043; color:#fff;">
-        <th style="padding:6px;">S1</th>
-        <th style="padding:6px;">S2</th>
-        <th style="padding:6px;">S3</th>
-        <th style="padding:6px;">S4</th>
-        <th style="padding:6px;">S5</th>
-        <th style="padding:6px;">S6</th>
-        <th style="padding:6px;">S7</th>
-        <th style="padding:6px;">S8</th>
-      </tr>
-      {% for alumno in alumnos %}
-      <tr>
-        {% for nota in alumno.notas %}
-        <td style="padding:6px; text-align:center;">{{ nota }}</td>
+    </select>
+
+    <label for="curso" style="font-weight:600;">Curso:</label>
+    <select name="curso" id="curso" onchange="document.getElementById('filterForm').submit()" style="padding:6px;border-radius:6px;border:1px solid #ccc;">
+      <option value="">Todos</option>
+      {% for c in cursos_selector %}
+        <option value="{{ c.id }}" {% if curso_seleccionado == c.id %}selected{% endif %}>{{ c.nombre }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<div style="display:flex; flex-wrap:wrap; gap:24px;">
+
+  <!-- Columna izquierda -->
+  <div style="flex:1; min-width:340px; background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px;">
+    {% if alumnos %}
+    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+      <thead style="background:#1976d2; color:#fff;">
+        <tr>
+          <th style="padding:6px;">#</th>
+          <th style="padding:6px;">Código</th>
+          <th style="padding:6px;">Curso</th>
+          <th style="padding:6px;">Sec.</th>
+          <th style="padding:6px;">Estudiante</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alumno in alumnos %}
+        <tr style="background:{{ '#f9fafb' if loop.index0 % 2 == 0 else '#fff' }};">
+          <td style="padding:6px;">{{ loop.index }}</td>
+          <td style="padding:6px;">{{ alumno.codigo }}</td>
+          <td style="padding:6px;">{{ alumno.curso }}</td>
+          <td style="padding:6px;">{{ alumno.seccion }}</td>
+          <td style="padding:6px;">{{ alumno.nombre }}</td>
+        </tr>
         {% endfor %}
-      </tr>
-      {% endfor %}
+      </tbody>
     </table>
+    {% else %}
+      <p style="color:#888;">No hay estudiantes para el período seleccionado.</p>
+    {% endif %}
   </div>
+
+  <!-- Columna derecha -->
+  <div style="flex:1.2; min-width:400px; background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px;">
+    {% if notas_alumnos %}
+    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+      <thead>
+        <tr style="background:#ff7043; color:#fff;">
+          <th colspan="8" style="padding:8px; text-align:center;">NOTAS</th>
+        </tr>
+        <tr style="background:#fff9c4; color:#333;">
+          <th style="padding:6px;">S1</th>
+          <th style="padding:6px;">S2</th>
+          <th style="padding:6px;">S3</th>
+          <th style="padding:6px;">S4</th>
+          <th style="padding:6px;">S5</th>
+          <th style="padding:6px;">S6</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for notas in notas_alumnos %}
+        <tr style="background:{{ '#f9fafb' if loop.index0 % 2 == 0 else '#fff' }};">
+          {% for nota in notas %}
+            <td style="padding:6px; text-align:center;">{{ nota }}</td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <p style="color:#888;">No hay notas disponibles para el período seleccionado.</p>
+    {% endif %}
+  </div>
+
 </div>
 {% endblock %}

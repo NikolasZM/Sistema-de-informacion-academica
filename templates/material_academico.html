@@ -1,36 +1,79 @@
 {% extends "base_docente.html" %}
 {% block title %}Material Académico{% endblock %}
+
 {% block content %}
-<h2>Material Académico</h2>
-<form method="POST" enctype="multipart/form-data" style="margin-bottom:24px;">
-  <input type="file" name="archivo" required>
-  <button type="submit">Subir archivo</button>
+<h2 style="color:#1976d2; margin-bottom:18px; padding-bottom:6px; border-bottom:2px solid #e3eafc;">
+  Material Académico
+</h2>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div style="margin-bottom:12px;">
+      {% for category, msg in messages %}
+        <div style="padding:10px 12px; border-radius:8px; margin-bottom:6px;
+                    background: {% if category == 'success' %}#e6ffed{% elif category == 'danger' %}#ffe6e6{% else %}#eef2ff{% endif %};
+                    color: {% if category == 'success' %}#0b6623{% elif category == 'danger' %}#a00{% else %}#0b63b7{% endif %};">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<form method="GET" style="display:flex; gap:12px; align-items:center; margin-bottom:18px;">
+  <label style="font-weight:600; color:#333;">Periodo</label>
+  <select name="periodo" onchange="this.form.submit()" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+    <option value="">Todos</option>
+    {% for p in periodos %}
+      <option value="{{ p.id }}" {% if periodo_seleccionado and periodo_seleccionado|string == p.id|string %}selected{% endif %}>{{ p.nombre if p.nombre else p.id }}</option>
+    {% endfor %}
+  </select>
+
+  <label style="font-weight:600; color:#333;">Curso</label>
+  <select name="curso" onchange="this.form.submit()" style="padding:8px; border-radius:6px; border:1px solid #cbd5e1;">
+    <option value="">Todos</option>
+    {% for c in cursos %}
+      <option value="{{ c.id }}" {% if curso_seleccionado and curso_seleccionado|string == c.id|string %}selected{% endif %}>{{ c.nombre if c.nombre else c.id }}</option>
+    {% endfor %}
+  </select>
 </form>
-<h3>Archivos subidos</h3>
-<ul style="list-style:none; padding:0;">
-  {% for archivo in archivos %}
-    <li style="margin-bottom:10px;">
+
+<!-- Formulario subida -->
+<form method="POST" enctype="multipart/form-data"
+      style="background:#fff; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.05);
+             padding:16px; margin-bottom:18px; display:flex; gap:12px; align-items:center;">
+  <input type="file" name="archivo" required
+         style="flex:1; padding:10px; border:1px solid #cbd5e1; border-radius:6px; cursor:pointer;">
+  <input type="hidden" name="periodo" value="{{ periodo_seleccionado or '' }}">
+  <input type="hidden" name="curso" value="{{ curso_seleccionado or '' }}">
+  <button type="submit"
+          style="background:#1976d2; color:#fff; border:none; border-radius:6px; padding:10px 18px;
+                 font-weight:600; cursor:pointer;">
+    Subir archivo
+  </button>
+</form>
+
+<!-- Lista de materiales -->
+<div style="background:#fff; border-radius:10px; box-shadow:0 3px 8px rgba(0,0,0,0.05); padding:16px;">
+  <h3 style="color:#1976d2; margin-bottom:12px;">Archivos subidos</h3>
+
+  {% if archivos %}
+  <ul style="list-style:none; padding:0; margin:0;">
+    {% for archivo in archivos %}
       {% set ext = archivo.split('.')[-1].lower() %}
-      <a href="{{ url_for('static', filename='uploads/material_academico/' ~ archivo) }}"
-         target="_blank"
-         style="font-weight:bold; color:#1976d2;">
-        {% if ext == 'pdf' %}
-          📄 {{ archivo }}
-        {% elif ext in ['xls', 'xlsx'] %}
-          📊 {{ archivo }}
-        {% elif ext in ['csv'] %}
-          🗒️ {{ archivo }}
-        {% elif ext in ['doc', 'docx'] %}
-          📝 {{ archivo }}
-        {% elif ext in ['ppt', 'pptx'] %}
-          📑 {{ archivo }}
-        {% else %}
-          📎 {{ archivo }}
-        {% endif %}
-      </a>
-    </li>
+      <li style="padding:10px 0; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between;">
+        <a href="{{ url_for('static', filename='uploads/material_academico/' ~ archivo) }}"
+           target="_blank"
+           style="font-weight:600; color:#1976d2; text-decoration:none;">
+          {% if ext == 'pdf' %}📄{% elif ext in ['xls','xlsx'] %}📊{% elif ext == 'csv' %}🗒️{% elif ext in ['doc','docx'] %}📝{% elif ext in ['ppt','pptx'] %}📑{% else %}📎{% endif %}
+          &nbsp;{{ archivo }}
+        </a>
+        <span style="color:#999; font-size:13px;">{{ ext.upper() }}</span>
+      </li>
+    {% endfor %}
+  </ul>
   {% else %}
-    <li>No hay archivos subidos.</li>
-  {% endfor %}
-</ul>
+    <p style="color:#777; text-align:center; margin:8px 0;">📂 No hay archivos subidos todavía.</p>
+  {% endif %}
+</div>
 {% endblock %}

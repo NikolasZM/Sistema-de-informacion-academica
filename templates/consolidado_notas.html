@@ -1,51 +1,90 @@
 {% extends "base_docente.html" %}
 {% block title %}Consolidado de Notas{% endblock %}
+
 {% block content %}
-<div id="consolidado-notas">
-  <h2 style="color:#fff; background:#111; padding:18px 0; text-align:center; border-radius:8px 8px 0 0; margin-bottom:0;">
-    CONSOLIDADO DE NOTAS
-  </h2>
-  <div style="background:#111; color:#fff; border-radius:0 0 8px 8px; padding:18px;">
-    <div style="margin-bottom:16px;">
-      <span style="font-weight:bold;">Unidad Didáctica:</span> {{ unidad }}
-      <span style="margin-left:40px; font-weight:bold;">Docente:</span> {{ docente }}
+<div id="consolidado-notas" style="max-width:1200px; margin:0 auto;">
+  
+  <!-- Encabezado -->
+  <h2 style="color:#1976d2; font-weight:700; margin-bottom:10px;">Consolidado de Notas</h2>
+  <p style="color:#555; margin-bottom:22px;">
+    Visualiza el resumen de calificaciones y desempeño académico por unidad didáctica.
+  </p>
+
+  <!-- Información general -->
+  <div style="background:#fff; border-radius:10px; box-shadow:0 3px 10px rgba(0,0,0,0.05); padding:20px 24px; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; flex-wrap:wrap; margin-bottom:12px;">
+      <div><strong>Unidad Didáctica:</strong> {{ unidad }}</div>
+      <div><strong>Docente:</strong> {{ docente }}</div>
     </div>
-    <table style="width:100%; border-collapse:collapse; background:#111; color:#fff;">
-      <tr>
-        <th rowspan="2" style="border:1px solid #fff; padding:6px;">N° Orden</th>
-        <th rowspan="2" style="border:1px solid #fff; padding:6px;">APELLIDOS Y NOMBRES</th>
-        <th colspan="8" style="border:1px solid #fff; padding:6px;">INDICADORES DE LOGRO</th>
-        <th rowspan="2" style="border:1px solid #fff; padding:6px;">Promedio</th>
-        <th rowspan="2" style="border:1px solid #fff; padding:6px;">Evaluación de Recuperación</th>
-        <th rowspan="2" style="border:1px solid #fff; padding:6px;">Nota Final</th>
-      </tr>
-      <tr>
-        {% for i in range(1,9) %}
-        <th style="border:1px solid #fff; padding:6px;">{{ i }}</th>
+  </div>
+
+  <!-- Tabla de notas -->
+  <div style="overflow-x:auto; background:#fff; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.05); padding:18px;">
+    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+      <thead style="background:#1976d2; color:#fff;">
+        <tr>
+          <th rowspan="2" style="padding:8px; border:1px solid #ddd;">N°</th>
+          <th rowspan="2" style="padding:8px; border:1px solid #ddd;">Apellidos y Nombres</th>
+          <th colspan="8" style="padding:8px; border:1px solid #ddd;">Indicadores de Logro</th>
+          <th rowspan="2" style="padding:8px; border:1px solid #ddd;">Promedio</th>
+          <th rowspan="2" style="padding:8px; border:1px solid #ddd;">Recuperación</th>
+          <th rowspan="2" style="padding:8px; border:1px solid #ddd;">Nota Final</th>
+        </tr>
+        <tr style="background:#2196f3;">
+          {% for i in range(1,9) %}
+          <th style="padding:6px; border:1px solid #ddd;">{{ i }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for est in estudiantes %}
+        <tr style="background:{{ '#f9f9f9' if loop.index0 % 2 == 0 else '#ffffff' }};">
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">{{ "%02d"|format(loop.index) }}</td>
+          <td style="padding:6px; border:1px solid #ddd;">{{ est.nombre }}</td>
+          {% for nota in est.indicadores[:8] %}
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">{{ nota }}</td>
+          {% endfor %}
+          <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#1565c0; font-weight:bold;">
+            {{ est.promedio }}
+          </td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center;">{{ est.recuperacion }}</td>
+          <td style="padding:6px; border:1px solid #ddd; text-align:center; color:#2e7d32; font-weight:bold;">
+            {{ est.nota_final }}
+          </td>
+        </tr>
         {% endfor %}
-      </tr>
-      {% for est in estudiantes %}
-      <tr>
-        <td style="border:1px solid #fff; padding:6px;">{{ "%02d"|format(loop.index) }}</td>
-        <td style="border:1px solid #fff; padding:6px;">{{ est.nombre }}</td>
-        {% for nota in est.indicadores[:8] %}
-        <td style="border:1px solid #fff; padding:6px;">{{ nota }}</td>
-        {% endfor %}
-        <td style="border:1px solid #fff; padding:6px; color:#ff5252;">{{ est.promedio }}</td>
-        <td style="border:1px solid #fff; padding:6px;">{{ est.recuperacion }}</td>
-        <td style="border:1px solid #fff; padding:6px; color:#ff5252;">{{ est.nota_final }}</td>
-      </tr>
-      {% endfor %}
+      </tbody>
     </table>
   </div>
-  <button onclick="window.print()" style="margin:18px auto 0 auto; display:block; background:#43a047; color:#fff; border:none; border-radius:5px; padding:10px 24px;">Imprimir PDF</button>
+
+  <!-- Botón de impresión -->
+  <div style="text-align:center; margin-top:24px;">
+    <button onclick="window.print()" 
+            style="background:#43a047; color:#fff; border:none; border-radius:6px;
+                   padding:10px 28px; font-weight:600; cursor:pointer;">
+      🖨️ Imprimir PDF
+    </button>
+  </div>
 </div>
+
+<!-- Estilo para impresión -->
 <style>
 @media print {
   body * { visibility: hidden !important; }
   #consolidado-notas, #consolidado-notas * { visibility: visible !important; }
-  #consolidado-notas { position: absolute; left: 0; top: 0; width: 100vw; background: #111 !important; color: #fff !important; }
+  #consolidado-notas {
+    position: absolute;
+    left: 0; top: 0;
+    width: 100vw;
+    background: #fff !important;
+    color: #000 !important;
+  }
   #consolidado-notas button { display: none !important; }
+  #consolidado-notas table th {
+    background: #1976d2 !important;
+    color: #fff !important;
+  }
 }
 </style>
 {% endblock %}

@@ -1,64 +1,76 @@
 {% extends "base_docente.html" %}
-{% block title %}Panel Docente - Sistema de Gestión Académica{% endblock %}
-{% block content %}
-    <h1>Bienvenido al Sistema de Gestión Académica</h1>
-    <p>Seleccione una opción del menú para comenzar.</p>
-{% endblock %}
+{% block title %}Inicio Docente{% endblock %}
 
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <title>Panel Docente - Sistema de Gestión Académica</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; }
-        .container { display: flex; height: 100vh; }
-        .sidebar {
-            background: #1976d2;
-            color: #fff;
-            width: 260px;
-            padding: 40px 20px;
-            box-shadow: 2px 0 8px rgba(0,0,0,0.05);
-        }
-        .sidebar h2 { margin-top: 0; }
-        .sidebar ul { list-style: none; padding: 0; }
-        .sidebar li { margin: 18px 0; }
-        .sidebar a {
-            color: #fff;
-            text-decoration: none;
-            font-weight: bold;
-            transition: color 0.2s;
-        }
-        .sidebar a:hover { color: #bbdefb; }
-        .main {
-            flex: 1;
-            padding: 60px 40px;
-        }
-        .main h1 { color: #1976d2; }
-        .main p { color: #333; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="sidebar">
-            <h2>Menú Docente</h2>
-            <ul>
-                <li><a href="{{ url_for('routes.perfil_docente') }}">1. Datos Personales</a></li>
-                <li>2. Gestión Académica
-                    <ul>
-                        <li><a href="#">2.1 Cursos y Unidades Didácticas</a></li>
-                        <li><a href="#">2.2 Evaluaciones y Notas</a></li>
-                        <li><a href="#">2.3 Asistencia de Estudiantes</a></li>
-                        <li><a href="#">2.4 Material Académico</a></li>
-                        <li><a href="#">2.5 Horario de Clases</a></li>
-                    </ul>
-                </li>
-            </ul>
-        </div>
-        <div class="main">
-            <h1>Bienvenido al Sistema de Gestión Académica</h1>
-            <p>Seleccione una opción del menú para comenzar.</p>
-        </div>
-    </div>
-</body>
-</html>
+{% block content %}
+<div style="max-width:1200px; margin:0 auto;">
+  <h2 style="color:#1976d2; margin-bottom:6px;">Bienvenido al Panel Docente</h2>
+  <p style="color:#555; margin-bottom:28px;">
+    Selecciona una de las secciones principales para gestionar tu información académica.
+  </p>
+
+  <!-- 🔹 Accesos rápidos -->
+  <div style="display:flex; flex-wrap:wrap; gap:20px;">
+
+    <!-- Datos personales -->
+    <a href="{{ url_for('routes.perfil_docente') }}" 
+       style="flex:1 1 220px; text-decoration:none; background:#fff; border-radius:12px;
+              box-shadow:0 3px 8px rgba(0,0,0,0.08); padding:28px; text-align:center;
+              transition:0.2s; border:1px solid #f1f5f9;">
+      <div style="font-size:32px; color:#1976d2;">👤</div>
+      <h3 style="color:#1976d2; margin:10px 0 0; font-size:18px;">Datos Personales</h3>
+      <p style="color:#666; font-size:14px;">Actualiza tu información docente.</p>
+    </a>
+
+    <!-- Cursos -->
+    <a href="{{ url_for('routes.cursos_docente') }}" 
+       style="flex:1 1 220px; text-decoration:none; background:#fff; border-radius:12px;
+              box-shadow:0 3px 8px rgba(0,0,0,0.08); padding:28px; text-align:center;
+              transition:0.2s; border:1px solid #f1f5f9;">
+      <div style="font-size:32px; color:#388e3c;">📘</div>
+      <h3 style="color:#388e3c; margin:10px 0 0; font-size:18px;">Cursos</h3>
+      <p style="color:#666; font-size:14px;">Consulta tus unidades didácticas.</p>
+    </a>
+
+    <!-- Evaluaciones -->
+    <a href="{{ url_for('routes.evaluaciones_docente') }}" 
+       style="flex:1 1 220px; text-decoration:none; background:#fff; border-radius:12px;
+              box-shadow:0 3px 8px rgba(0,0,0,0.08); padding:28px; text-align:center;
+              transition:0.2s; border:1px solid #f1f5f9;">
+      <div style="font-size:32px; color:#0288d1;">📝</div>
+      <h3 style="color:#0288d1; margin:10px 0 0; font-size:18px;">Evaluaciones</h3>
+      <p style="color:#666; font-size:14px;">Gestiona notas y calificaciones.</p>
+    </a>
+
+    <!-- Asistencia -->
+    <a href="{{ url_for('routes.asistencia_docente') }}" 
+       style="flex:1 1 220px; text-decoration:none; background:#fff; border-radius:12px;
+              box-shadow:0 3px 8px rgba(0,0,0,0.08); padding:28px; text-align:center;
+              transition:0.2s; border:1px solid #f1f5f9;">
+      <div style="font-size:32px; color:#f9a825;">📅</div>
+      <h3 style="color:#f9a825; margin:10px 0 0; font-size:18px;">Asistencia</h3>
+      <p style="color:#666; font-size:14px;">Registra y revisa asistencias.</p>
+    </a>
+
+    <!-- Material académico -->
+    <a href="{{ url_for('routes.material_academico') }}" 
+       style="flex:1 1 220px; text-decoration:none; background:#fff; border-radius:12px;
+              box-shadow:0 3px 8px rgba(0,0,0,0.08); padding:28px; text-align:center;
+              transition:0.2s; border:1px solid #f1f5f9;">
+      <div style="font-size:32px; color:#6a1b9a;">📚</div>
+      <h3 style="color:#6a1b9a; margin:10px 0 0; font-size:18px;">Material Académico</h3>
+      <p style="color:#666; font-size:14px;">Sube y gestiona tus materiales.</p>
+    </a>
+
+    <!-- Horario -->
+    <a href="{{ url_for('routes.horario_docente') }}" 
+       style="flex:1 1 220px; text-decoration:none; background:#fff; border-radius:12px;
+              box-shadow:0 3px 8px rgba(0,0,0,0.08); padding:28px; text-align:center;
+              transition:0.2s; border:1px solid #f1f5f9;">
+      <div style="font-size:32px; color:#d32f2f;">🕒</div>
+      <h3 style="color:#d32f2f; margin:10px 0 0; font-size:18px;">Horario</h3>
+      <p style="color:#666; font-size:14px;">Consulta tus horarios de clases.</p>
+    </a>
+
+  </div>
+</div>
+{% endblock %}

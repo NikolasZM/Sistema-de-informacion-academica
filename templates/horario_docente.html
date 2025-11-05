@@ -1,25 +1,81 @@
 {% extends "base_docente.html" %}
 {% block title %}Horario de Clases{% endblock %}
+
 {% block content %}
-<h2>Horario de Clases</h2>
-<table border="1" cellpadding="6" style="background:#fff;">
-  <tr style="background:#1976d2; color:#fff;">
-    <th>Curso</th>
-    <th>Día</th>
-    <th>Hora Inicio</th>
-    <th>Hora Fin</th>
-    <th>Salón</th>
-    <th>Periodo</th>
-  </tr>
-  {% for clase in horario %}
-  <tr>
-    <td>{{ clase.curso }}</td>
-    <td>{{ clase.dia }}</td>
-    <td>{{ clase.hora_inicio }}</td>
-    <td>{{ clase.hora_fin }}</td>
-    <td>{{ clase.salon }}</td>
-    <td>{{ clase.periodo }}</td>
-  </tr>
-  {% endfor %}
-</table>
+<h2 style="color:#1976d2; margin-bottom:18px;">Horario de Clases</h2>
+<p style="color:#555; margin-bottom:20px;">Selecciona el periodo académico para visualizar tu horario.</p>
+
+<!-- 🔹 Selector de periodo -->
+<div style="margin-bottom:20px;">
+  <label for="periodo" style="font-weight:bold; margin-right:8px;">Periodo:</label>
+  <select id="periodo" onchange="mostrarHorario()" 
+          style="padding:6px 12px; border-radius:6px; border:1px solid #ccc;">
+    {% for periodo in horario | map(attribute='periodo') | unique | list %}
+      <option value="{{ periodo }}">{{ periodo }}</option>
+    {% endfor %}
+  </select>
+</div>
+
+<!-- 🔹 Contenedores por periodo -->
+{% set periodos = horario | map(attribute='periodo') | unique | list %}
+{% for periodo in periodos %}
+<div class="tabla-horario" id="horario-{{ periodo }}" style="display:none; margin-bottom:40px;">
+  <div style="overflow-x:auto; background:#fff; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,0.05); padding:18px;">
+    <h3 style="color:#1976d2; margin-bottom:12px;">Periodo: {{ periodo }}</h3>
+    <table style="width:100%; border-collapse:collapse; text-align:center; font-size:13px;">
+      <thead>
+        <tr style="background:#1976d2; color:#fff;">
+          <th style="padding:10px; width:90px;">Hora Inicio</th>
+          <th style="padding:10px; width:90px;">Hora Fin</th>
+          <th style="padding:10px;">Lunes</th>
+          <th style="padding:10px;">Martes</th>
+          <th style="padding:10px;">Miércoles</th>
+          <th style="padding:10px;">Jueves</th>
+          <th style="padding:10px;">Viernes</th>
+          <th style="padding:10px;">Sábado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set cursos_periodo = horario | selectattr('periodo', 'equalto', periodo) | list %}
+        {% set horas_unicas = cursos_periodo | map(attribute='hora_inicio') | unique | list %}
+        {% for hora in horas_unicas %}
+          {% set bloque = (cursos_periodo | selectattr('hora_inicio', 'equalto', hora) | list)[0] %}
+          <tr style="background:{{ '#f9fafb' if loop.index0 % 2 == 0 else '#fff' }};">
+            <td style="padding:8px; font-weight:600;">{{ bloque.hora_inicio }}</td>
+            <td style="padding:8px;">{{ bloque.hora_fin }}</td>
+            {% for dia in ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'] %}
+              {% set clase_dia = cursos_periodo | selectattr('dia', 'equalto', dia) | selectattr('hora_inicio', 'equalto', hora) | list %}
+              {% if clase_dia|length > 0 %}
+                {% set clase = clase_dia[0] %}
+                <td style="padding:8px; border:1px solid #e0e0e0; text-align:center;">
+                  <div style="font-weight:600; color:#1976d2;">{{ clase.curso }}</div>
+                  <div style="font-size:12px; color:#444;">{{ clase.salon }}</div>
+                </td>
+              {% else %}
+                <td style="padding:8px; border:1px solid #f3f4f6; background:#fafafa;"></td>
+              {% endif %}
+            {% endfor %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endfor %}
+
+<!-- Script para mostrar el periodo seleccionado -->
+<script>
+function mostrarHorario() {
+  const select = document.getElementById("periodo");
+  const periodos = document.querySelectorAll(".tabla-horario");
+  periodos.forEach(tabla => tabla.style.display = "none");
+  const activo = document.getElementById("horario-" + select.value);
+  if (activo) activo.style.display = "block";
+}
+// Mostrar el primero por defecto
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("periodo").selectedIndex = 0;
+  mostrarHorario();
+});
+</script>
 {% endblock %}

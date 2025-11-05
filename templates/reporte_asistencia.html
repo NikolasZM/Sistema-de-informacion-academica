@@ -1,40 +1,62 @@
-{% extends "base_docente.html" %}
-{% block title %}Reporte de Asistencia{% endblock %}
-{% block content %}
-<h2>Reporte de Asistencia - {{ curso_nombre }}</h2>
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Reporte asistencia - {{ curso.nombre if curso else 'Asistencia' }}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; }
+    .header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+    .brand { font-weight:700; color:#0b63b7; }
+    .meta { text-align:right; font-size:11px; color:#334155; }
+    table { width:100%; border-collapse:collapse; margin-top:8px; table-layout:fixed; word-wrap:break-word; }
+    th, td { border:1px solid #cbd5e1; padding:6px 6px; text-align:center; font-size:10px; }
+    th { background:#eef2ff; font-weight:700; }
+    .left { text-align:left; }
+    .danger { color:#c62828; font-weight:700; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">SGA - CEDHI</div>
+      <div class="small">{{ programa.nombre if programa else '' }}</div>
+    </div>
+    <div class="meta">
+      <div>Curso: <strong>{{ curso.nombre if curso else '' }}</strong></div>
+      <div>Docente: <strong>{{ docente.nombre_completo if docente else '' }}</strong></div>
+      <div>Generado: <strong>{{ fecha if fecha else '' }}</strong></div>
+    </div>
+  </div>
 
-<form method="get" style="margin-bottom:18px;">
-  <label for="fecha_inicio">Desde:</label>
-  <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}">
-  <label for="fecha_fin">Hasta:</label>
-  <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}">
-  <button type="submit">Filtrar</button>
-</form>
-
-<table border="1" cellpadding="6" style="background:#fff;">
-  <tr style="background:#1976d2; color:#fff;">
-    <th>Código</th>
-    <th>Nombre</th>
-    {% for fecha in fechas %}
-      <th>{{ fecha }}</th>
-    {% endfor %}
-  </tr>
-  {% for estudiante in estudiantes %}
-  <tr>
-    <td>{{ estudiante.codigo }}</td>
-    <td>{{ estudiante.nombre_completo }}</td>
-    {% for fecha in fechas %}
-      <td>
-        {% if asistencia_dict[estudiante.id][fecha] == 'asistio' %}
-          ✔️
-        {% elif asistencia_dict[estudiante.id][fecha] == 'falta' %}
-          ❌
-        {% else %}
-          -
-        {% endif %}
-      </td>
-    {% endfor %}
-  </tr>
-  {% endfor %}
-</table>
-{% endblock %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Código</th>
+        <th class="left">Nombre</th>
+        <th>Teléfono</th>
+        <th>Faltas</th>
+        <th>%</th>
+        <th>Excede 30%</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in alumnos %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ a.codigo or '' }}</td>
+        <td class="left">{{ a.nombre or '' }}</td>
+        <td>{{ a.telefono or '' }}</td>
+        <td>{{ a.faltas }}</td>
+        <td>{{ a.porcentaje }}%</td>
+        <td>{% if a.excede_30 %}<span class="danger">SÍ</span>{% else %}NO{% endif %}</td>
+      </tr>
+      {% endfor %}
+      {% if alumnos|length == 0 %}
+      <tr><td colspan="7" style="text-align:center; color:#64748b;">No se encontraron registros</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</body>
+</html>

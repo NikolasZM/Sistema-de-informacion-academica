@@ -2,17 +2,28 @@
 {% block title %}Justificar Inasistencia{% endblock %}
 {% block content %}
 <h2>Justificar Inasistencia - Curso {{ cursos_nombre }}</h2>
+
+<!-- Formulario para filtrar por fecha -->
+<form method="get" style="margin-bottom:24px;">
+  <label for="fecha">Selecciona la fecha:</label>
+  <input type="date" name="fecha" id="fecha" value="{{ fecha or '' }}" required>
+  <button type="submit">Ver faltas</button>
+</form>
+
+<!-- Formulario para justificar una falta (solo si hay fecha seleccionada) -->
+{% if fecha %}
 <form method="POST" style="margin-bottom:24px;">
   <label for="codigo_estudiante">Código del estudiante:</label>
   <input type="text" name="codigo_estudiante" id="codigo_estudiante" required>
-  <label for="fecha">Fecha de la falta:</label>
-  <input type="date" name="fecha" id="fecha" required>
+  <input type="hidden" name="fecha" value="{{ fecha }}">
   <label for="observacion">Motivo de la justificación:</label>
   <input type="text" name="observacion" id="observacion" required>
   <button type="submit">Justificar</button>
 </form>
+{% endif %}
 
-<h3>Faltas pendientes de justificación</h3>
+{% if fecha %}
+<h3>Faltas pendientes de justificación para {{ fecha }}</h3>
 <table>
   <tr>
     <th>Código</th>
@@ -27,6 +38,11 @@
     <td>{{ falta.fecha }}</td>
     <td>{{ falta.observacion }}</td>
   </tr>
+  {% else %}
+  <tr>
+    <td colspan="4">No hay faltas pendientes para esta fecha.</td>
+  </tr>
   {% endfor %}
 </table>
+{% endif %}
 {% endblock %}

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"/>
+  <title>Reporte curso - {{ curso.nombre if curso else 'Curso' }}</title>
+  <style>
+    @page { size: A4 landscape; margin: 12mm; }
+    body { font-family: Arial, sans-serif; font-size: 11px; color: #111; }
+    .header { display:flex; justify-content:space-between; margin-bottom:8px; align-items:flex-end; }
+    .brand { font-weight:700; color:#0b63b7; font-size:14px; }
+    .meta { text-align:right; font-size:11px; color:#334155; }
+    table { width:100%; border-collapse:collapse; margin-top:6px; table-layout:fixed; }
+    th, td { border:1px solid #cbd5e1; padding:6px 6px; text-align:left; font-size:10px; }
+    th { background:#eef2ff; font-weight:700; }
+    .small { font-size:11px; color:#475569; }
+    .center { text-align:center; }
+    .nowrap { white-space:nowrap; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="brand">SGA - CEDHI</div>
+      <div class="small">{{ programa.nombre if programa else '' }}</div>
+    </div>
+    <div class="meta">
+      <div>Curso: <strong>{{ curso.nombre if curso else '' }}</strong></div>
+      <div>Docente: <strong>{{ docente.nombre_completo if docente else '' }}</strong></div>
+      <div>Fecha: <strong>{{ fecha if fecha else '' }}</strong></div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:3%;">#</th>
+        <th style="width:10%;">Código</th>
+        <th>Nombre</th>
+        <th style="width:12%;">Teléfono</th>
+        {% for i in range(1, notas_count + 1) %}
+          <th style="width:6%;" class="center">N{{ i }}</th>
+        {% endfor %}
+        <th style="width:8%;" class="center">Promedio</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for a in alumnos %}
+      <tr>
+        <td class="center">{{ loop.index }}</td>
+        <td class="nowrap">{{ a.codigo or '' }}</td>
+        <td>{{ a.nombre or '' }}</td>
+        <td class="nowrap">{{ a.telefono or '' }}</td>
+        {% for n in a.notas %}
+          <td class="center">{{ n if n != '' else '-' }}</td>
+        {% endfor %}
+        {% if a.notas|length < notas_count %}
+          {% for _ in range(notas_count - (a.notas|length)) %}
+            <td class="center">-</td>
+          {% endfor %}
+        {% endif %}
+        <td class="center">{{ a.promedio if a.promedio != '' else '-' }}</td>
+      </tr>
+      {% endfor %}
+      {% if alumnos|length == 0 %}
+      <tr><td colspan="{{ 4 + notas_count }}" style="text-align:center; color:#64748b;">No hay alumnos registrados</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</body>
+</html>

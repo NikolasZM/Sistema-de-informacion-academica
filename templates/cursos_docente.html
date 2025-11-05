@@ -1,85 +1,91 @@
 {% extends "base_docente.html" %}
 {% block title %}Cursos y Unidades Didácticas{% endblock %}
 {% block content %}
-<h2 style="color:#1976d2; margin-bottom:18px;">Carga Académica</h2>
-<div style="display:flex; gap:18px; margin-bottom:18px;">
-    <!-- Filtros opcionales -->
+
+<h2 style="color:#1976d2; margin-bottom:18px; padding-bottom:6px; border-bottom:2px solid #e3eafc;">
+  Carga Académica
+</h2>
+
+<!-- Filtros: se elimina modalidad, se deja selector de periodo -->
+<div style="background:#fff; border-radius:10px; box-shadow:0 2px 6px rgba(0,0,0,0.05); padding:16px 20px; margin-bottom:20px; display:flex; gap:20px; flex-wrap:wrap; align-items:flex-end;">
+  <form id="periodoForm" method="get" action="{{ url_for('routes.cursos_docente') }}" style="display:flex;align-items:center;gap:12px;">
     <div>
-        <label style="font-weight:bold;">Seleccionar Modalidad:</label>
-        <select style="padding:6px 12px; border-radius:5px; border:1px solid #b0bec5;">
-            <option>REGULAR</option>
-            <option>ESPECIAL</option>
-        </select>
+      <label style="font-weight:600; color:#374151; margin-right:8px;">Periodo:</label>
+      <select name="periodo" id="periodo" style="padding:6px 12px; border-radius:6px; border:1px solid #b0bec5;" onchange="document.getElementById('periodoForm').submit()">
+        {% if periodos %}
+          {% for p in periodos %}
+            <option value="{{ p.id }}" {% if periodo_seleccionado == p.id %}selected{% endif %}>{{ p.codigo }}</option>
+          {% endfor %}
+        {% else %}
+          <option>N/A</option>
+        {% endif %}
+      </select>
     </div>
-    <div>
-        <label style="font-weight:bold;">Seleccionar Periodo:</label>
-        <select style="padding:6px 12px; border-radius:5px; border:1px solid #b0bec5;">
-            <option>2025-0</option>
-            <option>2025-1</option>
-        </select>
-    </div>
-    <div style="align-self:flex-end;">
-        <button style="background:#43a047; color:#fff; border:none; border-radius:5px; padding:8px 18px; font-weight:bold;">Ver Unidad Didáctica</button>
-    </div>
+  </form>
+
+  <div style="margin-left:auto">
+    <!-- mantener espacio para futuros botones -->
+  </div>
 </div>
-<div style="background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,0.04); padding:18px;">
+
+<!-- Tabla -->
+<div style="background:#fff; border-radius:12px; box-shadow:0 3px 10px rgba(0,0,0,0.05); padding:22px;">
   {% if cargas %}
   <table style="width:100%; border-collapse:collapse;">
-    <tr style="background:#e3eafc; color:#1976d2;">
-      <th style="padding:6px;">Programa</th>
-      <th style="padding:6px;">Módulo</th>
-      <th style="padding:6px;">Unidad Didactica</th>
-      <th style="padding:6px;">Aula</th>
-      <th style="padding:6px;">Periodo Académico</th>
-      <th style="padding:6px;">Ing. Notas</th>
-      <th style="padding:6px;">Consultar</th>
-      <th style="padding:6px;">Reporte</th>
-      <th style="padding:6px;">Plantilla</th>
+    <tr style="background:#1976d2; color:#fff;">
+      <th style="padding:8px;">Programa</th>
+      <th style="padding:8px;">Módulo</th>
+      <th style="padding:8px;">No. Módulo</th>
+      <th style="padding:8px;">Unidad Didáctica</th>
+      <th style="padding:8px;">Aula</th>
+      <th style="padding:8px;">Periodo</th>
+      <th style="padding:8px;">Ing. Notas</th>
+      <th style="padding:8px;">Consultar</th>
+      <th style="padding:8px;">Reporte</th>
+      <th style="padding:8px;">Plantilla</th>
     </tr>
     {% for carga in cargas %}
     <tr style="background:{{ '#f9fafb' if loop.index0 % 2 == 0 else '#fff' }};">
-      <td style="padding:6px;">{{ carga.programa }}</td>
-      <td style="padding:6px;">{{ carga.modulo }}</td>
-      <td style="padding:6px;">{{ carga.nombre }}</td>
-      <td style="padding:6px;">{{ carga.salon }}</td>
-      <td style="padding:6px;">{{ carga.periodo }}</td>
-      <td style="padding:6px;">
-        <a href="{{ url_for('routes.ingresar_notas', codigo=carga.codigo) }}">
-          <button style="background:#29b6f6; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">
+      <td style="padding:8px;">{{ carga.programa }}</td>
+      <td style="padding:8px;">{{ carga.modulo }}</td>
+      <td style="padding:8px;">{{ carga.modulo_num or '' }}</td>
+      <td style="padding:8px;">{{ carga.nombre }}</td>
+      <td style="padding:8px;">{{ carga.salon }}</td>
+      <td style="padding:8px;">{{ carga.periodo }}</td>
+      <td style="padding:8px;">
+        <a href="{{ url_for('routes.ingresar_notas', codigo=carga.codigo, periodo=periodo_seleccionado) }}">
+          <button style="background:#29b6f6; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer; transition:0.2s;">
             Evaluaciones
           </button>
         </a>
       </td>
-      <td style="padding:6px;">
-        <a href="{{ url_for('routes.consolidado_notas', codigo=carga.codigo) }}">
-          <button style="background:#1976d2; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">
-            Consolidado Notas
+      <td style="padding:8px;">
+        <a href="{{ url_for('routes.consolidado_notas', codigo=carga.codigo, periodo=periodo_seleccionado) }}">
+          <button style="background:#1976d2; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer; transition:0.2s;">
+            Consolidado
           </button>
         </a>
       </td>
-      <td style="padding:6px;">
-        <a href="{{ url_for('routes.ver_estudiantes', codigo=carga.codigo) }}">
-          <button style="background:#ef5350; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">
-            Ver Estudiantes
+      <td style="padding:8px;">
+        <a href="{{ url_for('routes.ver_estudiantes', codigo=carga.codigo, periodo=periodo_seleccionado) }}">
+          <button style="background:#ef5350; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">Estudiantes</button>
+        </a>
+      </td>
+      <td style="padding:8px;">
+        <a href="{{ url_for('routes.reporte_curso_pdf_inline', codigo=carga.codigo, periodo=periodo_seleccionado) }}" target="_blank" rel="noopener">
+          <button style="background:#66bb6a; color:#fff; border:none; border-radius:6px; padding:7px 14px; font-weight:600; cursor:pointer;">
+            Plantilla
           </button>
         </a>
-        <button style="background:#ff7043; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer; margin-left:4px;">
-          Conformidad
-        </button>
-      </td>
-      <td style="padding:6px;">
-        <button style="background:#66bb6a; color:#fff; border:none; border-radius:5px; padding:6px 12px; font-weight:bold; cursor:pointer;">
-          Plantilla
-        </button>
       </td>
     </tr>
     {% endfor %}
   </table>
-  <div style="margin-top:10px; color:#888; font-size:0.95em;">
+  <div style="margin-top:12px; color:#607d8b; font-size:0.9em;">
     Mostrando registros del 1 al {{ cargas|length }} de un total de {{ cargas|length }} registros
   </div>
   {% else %}
-    <p style="color:#888;">No tienes cursos asignados en este periodo.</p>
+  <p style="color:#888;">No tienes cursos asignados en este periodo.</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,0 +1,74 @@
+{% extends "base_docente.html" %}
+{% block title %}Reporte de Asistencia{% endblock %}
+{% block content %}
+<h2>Reporte de Asistencia - {{ curso_nombre }}</h2>
+
+<form method="get" style="margin-bottom:18px;">
+  <label for="fecha_inicio">Desde:</label>
+  <input type="date" id="fecha_inicio" name="fecha_inicio" value="{{ fecha_inicio }}">
+  <label for="fecha_fin">Hasta:</label>
+  <input type="date" id="fecha_fin" name="fecha_fin" value="{{ fecha_fin }}">
+  <button type="submit">Filtrar</button>
+</form>
+
+{% if fechas and (fecha_inicio or fecha_fin) %}
+<table border="1" cellpadding="6" style="background:#fff;">
+  <tr style="background:#1976d2; color:#fff;">
+    <th>Código</th>
+    <th>Nombre</th>
+    {% for fecha in fechas %}
+      <th>{{ fecha }}</th>
+    {% endfor %}
+    <th>Justificación</th>
+  </tr>
+  {% for estudiante in estudiantes %}
+  <tr>
+    <td>{{ estudiante.codigo }}</td>
+    <td>{{ estudiante.nombre_completo }}</td>
+
+    {# namespace para acumular justificaciones por fila #}
+    {% set ns = namespace(just=[]) %}
+    {% set rowdict = asistencia_dict.get(estudiante.id, {}) %}
+
+    {% for fecha in fechas %}
+      {% set rec = rowdict.get(fecha) %}
+      <td>
+        {% if rec is mapping %}
+          {% set estado = rec.get('estado') %}
+          {% set just = rec.get('justificacion') %}
+        {% else %}
+          {% set estado = rec %}
+          {% set just = '' %}
+        {% endif %}
+
+        {% if estado in ['asistio','Asistio','ASISTIO','P','Presente','presente','1','Asistió'] %}
+          ✔️
+        {% elif estado in ['falta','Falta','NO','no','n','absent','absente'] %}
+          ❌
+        {% else %}
+          -
+        {% endif %}
+
+        {% if just %}
+          {# marcar y almacenar justificación para columna final #}
+          <span title="{{ just }}" style="margin-left:6px; color:#0b63b7;">🛈</span>
+          {% set ns.just = ns.just + [just] %}
+        {% endif %}
+      </td>
+    {% endfor %}
+
+    <td>
+      {% if ns.just %}
+        {{ ns.just | join(', ') }}
+      {% else %}
+        -
+      {% endif %}
+    </td>
+
+  </tr>
+  {% endfor %}
+</table>
+{% elif not (fecha_inicio or fecha_fin) %}
+<p>Selecciona un rango de fechas y haz clic en "Filtrar" para ver el reporte.</p>
+{% endif %}
+{% endblock %}
