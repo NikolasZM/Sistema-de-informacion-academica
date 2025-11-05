@@ -1336,8 +1336,7 @@ def crear_estudiante():
 
 @routes.route('/administrador/programas/new', methods=['GET', 'POST'])
 def abrir_programa():
-    # Protección básica
-    # Para GET -> cargar programas y módulos
+    # Ya no necesitamos 'periodos' aquí
     programas = Programa.query.all()
 
     if request.method == 'POST':
@@ -1345,12 +1344,13 @@ def abrir_programa():
         modulo_id = request.form.get('modulo_id')
         inicio_raw = request.form.get('fecha_inicio')
         fin_raw = request.form.get('fecha_fin')
-
+        
+        # 1. MODIFICAMOS LA VALIDACIÓN: Ya no buscamos 'periodo_id'
         if not (programa_id and modulo_id and inicio_raw and fin_raw):
             flash("Completa todos los campos obligatorios.", "error")
             return render_template('programa_new.html', programas=programas, form=request.form)
 
-        # parsear fechas (DD/MM/YYYY o YYYY-MM-DD)
+        # 2. PARSEAMOS LAS FECHAS (Tu código existente)
         fecha_inicio = None
         fecha_fin = None
         for fmt in ("%d/%m/%Y", "%Y-%m-%d"):
@@ -1370,17 +1370,49 @@ def abrir_programa():
             flash("Fechas inválidas. Asegúrate que la fecha de fin sea posterior a la de inicio.", "error")
             return render_template('programa_new.html', programas=programas, form=request.form)
 
-        # crear ModuloActivo
+        # ==========================================================
+        # 3. 🚀 LÓGICA AUTOMÁTICA DEL PERÍODO (AÑADE ESTO)
+        # ==========================================================
+        year = fecha_inicio.year
+        month = fecha_inicio.month
+        
+        periodo_code = None
+        
+        if 3 <= month <= 7:  # De Marzo (3) a Julio (7)
+            periodo_code = f"{year}-I"
+        elif 8 <= month <= 12: # De Agosto (8) a Diciembre (12)
+            periodo_code = f"{year}-II"
+        else:
+            # Caso de Enero (1) o Febrero (2)
+            flash(f"La fecha de inicio '{inicio_raw}' no es válida. Los períodos solo pueden iniciar de Marzo a Diciembre.", "error")
+            return render_template('programa_new.html', programas=programas, form=request.form)
+
+        # Ahora, buscamos el ID de ese período en la DB
+        periodo_obj = Periodo.query.filter_by(codigo=periodo_code).first()
+
+        if not periodo_obj:
+            # El período (ej. "2025-1") no existe. ¡Error crítico!
+            flash(f"Error: El período académico '{periodo_code}' (requerido para esta fecha) no existe en la base de datos. Por favor, créelo primero en la sección de 'Períodos'.", "error")
+            return render_template('programa_new.html', programas=programas, form=request.form)
+        
+        # ¡Éxito! Tenemos el ID
+        periodo_id_encontrado = periodo_obj.id
+        # ==========================================================
+        # FIN DE LA LÓGICA DEL PERÍODO
+        # ==========================================================
+
+        # 4. crear ModuloActivo (MODIFICA ESTO)
         try:
             nuevo = ModuloActivo(
                 programa_id=programa_id,
                 modulo_id=int(modulo_id),
                 fecha_inicio=fecha_inicio,
                 fecha_fin=fecha_fin,
-                estado="activo"
+                estado="activo",
+                periodo_id=periodo_id_encontrado # <-- AÑADE ESTO
             )
             db.session.add(nuevo)
-            db.session.flush()  # <- IMPORTANTE: asegura que nuevo.id esté disponible
+            db.session.flush()
 
             cursos_modulo = Curso.query.filter_by(modulo_id=modulo_id).all()
             for curso in cursos_modulo:
@@ -1393,14 +1425,17 @@ def abrir_programa():
             db.session.commit()
             flash("Módulo abierto correctamente.", "success")
             return redirect(url_for('routes.gestion_programas'))
+        
         except Exception as e:
             db.session.rollback()
             current_app.logger.exception("Error creando ModuloActivo:")
             flash("Ocurrió un error al crear la oferta del módulo.", "error")
             return render_template('programa_new.html', programas=programas, form=request.form)
 
-    # GET
+    # 5. MODIFICA LA CARGA GET (Quita 'periodos')
     return render_template('programa_new.html', programas=programas, form={})
+
+
 
 @routes.route('/_api/modulos/<programa_id>')
 def api_modulos(programa_id):
@@ -1644,7 +1679,6 @@ def asignar_docentes_modulo(ma_id):
                            cursos=cursos_activos,
                            docentes=docentes,
                            use_curso_activo=use_curso_activo)
-
 
 @routes.route('/administrador/modulo_activo/<int:ma_id>/matricular', methods=['GET', 'POST'])
 def matricular_modulo(ma_id):
